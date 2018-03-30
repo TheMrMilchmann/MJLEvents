@@ -18,9 +18,6 @@ package com.github.themrmilchmann.mjl.events;
 /**
  * The base interface for all events that can be posted to an {@link EventBus}.
  *
- * @apiNote This interface was deliberately chosen over any object. To open up more possibilities of adding new
- *          behaviour in future versions without breaking binary compatibility.
- *
  * @since   1.0.0
  *
  * @author  Leon Linhart

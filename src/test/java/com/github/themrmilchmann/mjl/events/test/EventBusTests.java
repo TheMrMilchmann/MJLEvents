@@ -40,7 +40,7 @@ public final class EventBusTests {
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$unsubscribe$Nullability() {
         EventBus bus = new EventBus.Builder().build();
-        bus.unsubscribe(null);
+        bus.unregister(null);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
