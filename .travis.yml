@@ -16,7 +16,7 @@ script:
     - ./gradlew check --info -S --parallel -Psnapshot
 
 after_success:
-    - .ci/deploy.sh
+    - .dev/ci/deploy.sh
 
 branches:
     except:
