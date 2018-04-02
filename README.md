@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-yellowgreen.svg?style=flat-square)](https://github.com/TheMrMilchmann/MJLEvents/blob/master/LICENSE)
 [![Build Status](https://img.shields.io/travis/TheMrMilchmann/MJLEvents.svg?style=flat-square)](https://travis-ci.org/TheMrMilchmann/MJLEvents)
-[![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.gw2api/gw2api.svg?style=flat-square&label=maven%20central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.gw2api/gw2api)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=maven%20central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.mjl/mjl-events)
 
 
 MJL Events
