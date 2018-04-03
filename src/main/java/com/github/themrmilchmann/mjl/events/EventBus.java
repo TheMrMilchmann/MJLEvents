@@ -30,9 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
@@ -85,7 +86,7 @@ import java.util.stream.Collectors;
  */
 public final class EventBus {
 
-    private final ConcurrentMap<Class<? extends Event>, List<Subscriber>> subscribers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Class<? extends Event>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
 
     private final EventDispatcher dispatcher;
     private final Executor executor;
@@ -175,7 +176,7 @@ public final class EventBus {
             }
         }
 
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList()).addAll(subscribers));
+        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet()).addAll(subscribers));
     }
 
     /**
@@ -237,7 +238,7 @@ public final class EventBus {
             }
         }
 
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList()).addAll(subscribers));
+        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet()).addAll(subscribers));
     }
 
     /**
