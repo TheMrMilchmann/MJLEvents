@@ -79,7 +79,6 @@ import java.util.stream.Collectors;
  * {@link Builder#setSelfCleaning(boolean)}). A bus created with this option will always remove all unused references as
  * soon as possible at the cost of computation speed for registering/unregistering operations.</p>
  *
- *
  * @since   1.0.0
  *
  * @author  Leon Linhart

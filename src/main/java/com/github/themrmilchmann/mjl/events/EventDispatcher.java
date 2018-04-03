@@ -23,7 +23,6 @@ import java.util.Queue;
 /**
  * An object that takes care of submitting events to subscribers.
  *
- *
  * @since   1.0.0
  *
  * @author  Leon Linhart
