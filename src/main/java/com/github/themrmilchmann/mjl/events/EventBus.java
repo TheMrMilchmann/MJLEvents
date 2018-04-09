@@ -88,12 +88,14 @@ public final class EventBus {
     private final ConcurrentMap<Class<? extends Event>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
 
     private final EventDispatcher dispatcher;
+    private final DispatchErrorHandler dispatchErrorHandler;
     private final Executor executor;
     private final Class<? extends Annotation> subscriberMarker;
     private final boolean isSelfCleaning;
 
-    private EventBus(EventDispatcher dispatcher, Executor executor, Class<? extends Annotation> subscriberMarker, boolean isSelfCleaning) {
+    private EventBus(EventDispatcher dispatcher, DispatchErrorHandler dispatchErrorHandler, Executor executor, Class<? extends Annotation> subscriberMarker, boolean isSelfCleaning) {
         this.dispatcher = dispatcher;
+        this.dispatchErrorHandler = dispatchErrorHandler;
         this.executor = executor;
         this.subscriberMarker = subscriberMarker;
         this.isSelfCleaning = isSelfCleaning;
@@ -378,7 +380,7 @@ public final class EventBus {
                 try {
                     this.handle.invokeWithArguments(event);
                 } catch (Throwable t) {
-                    t.printStackTrace();
+                    this.bus.dispatchErrorHandler.onDispatchError(event, this, t);
                 }
             });
         }
@@ -447,6 +449,7 @@ public final class EventBus {
     public static final class Builder {
 
         private EventDispatcher dispatcher;
+        private DispatchErrorHandler dispatchErrorHandler;
         private Executor executor;
         private Class<? extends Annotation> subscriberMarker;
         private boolean isSelfCleaning;
@@ -458,6 +461,8 @@ public final class EventBus {
          */
         public Builder() {
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
+            // Get rid of this the next time, the major version. (This shipped in 1.0.0, so I'll keep it for now)
+            this.dispatchErrorHandler = (e, s, t) -> t.printStackTrace();
             this.executor = MJLExecutors.directExecutor();
             this.subscriberMarker = EventSubscriber.class;
             this.isSelfCleaning = false;
@@ -471,7 +476,7 @@ public final class EventBus {
          * @since   1.0.0
          */
         public EventBus build() {
-            return new EventBus(this.dispatcher, this.executor, this.subscriberMarker, this.isSelfCleaning);
+            return new EventBus(this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning);
         }
 
         /**
@@ -489,6 +494,23 @@ public final class EventBus {
          */
         public Builder setDispatcher(EventDispatcher dispatcher) {
             this.dispatcher = Objects.requireNonNull(dispatcher);
+            return this;
+        }
+
+        /**
+         * Sets the {@link DispatchErrorHandler} that will be used by the bus.
+         *
+         * <p><b>Consecutive calls overwrite the previously set value.</b></p>
+         *
+         * @param handler   the dispatch-error-handler for the bus
+         *
+         * @return  this builder instance
+         *
+         * @since   1.1.0
+         */
+        @SuppressWarnings("WeakerAccess")
+        public Builder setDispatchErrorHandler(DispatchErrorHandler handler) {
+            this.dispatchErrorHandler = Objects.requireNonNull(handler);
             return this;
         }
 
