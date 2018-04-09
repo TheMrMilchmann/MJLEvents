@@ -421,6 +421,30 @@ public final class EventBus {
         }
 
         /**
+         * Returns the {@link EventBus} that owns this subscriber.
+         *
+         * @return  the bus that owns this subscriber
+         *
+         * @since   1.1.0
+         */
+        @SuppressWarnings("unused")
+        public EventBus getBus() {
+            return this.bus;
+        }
+
+        /**
+         * Returns the origin of this subscriber.
+         *
+         * @return  the origin of this subscriber
+         *
+         * @since   1.1.0
+         */
+        @SuppressWarnings("unused")
+        public Object getOrigin() {
+            return this.origin;
+        }
+
+        /**
          * <b>Serves as a proxy for {@link Method#isAnnotationPresent(Class)}.</b>
          *
          * @param annotationClass   the Class object corresponding to the annotation type
