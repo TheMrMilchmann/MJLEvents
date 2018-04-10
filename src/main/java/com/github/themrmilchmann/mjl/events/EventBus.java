@@ -485,7 +485,7 @@ public final class EventBus {
          */
         public Builder() {
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
-            // Get rid of this the next time, the major version. (This shipped in 1.0.0, so I'll keep it for now)
+            // Get rid of this the next time the major version is increased. (This shipped in 1.0.0, so I'll keep it for now)
             this.dispatchErrorHandler = (e, s, t) -> t.printStackTrace();
             this.executor = MJLExecutors.directExecutor();
             this.subscriberMarker = EventSubscriber.class;
