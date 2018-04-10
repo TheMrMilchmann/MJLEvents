@@ -65,14 +65,14 @@ public abstract class EventDispatcher {
      *
      * @since   1.0.0
      */
-    abstract void dispatch(Event event, Collection<EventBus.Subscriber> subscribers);
+    protected abstract void dispatch(Event event, Collection<EventBus.Subscriber> subscribers);
 
     private static class DirectDispatcher extends EventDispatcher {
 
         private static final EventDispatcher INSTANCE = new DirectDispatcher();
 
         @Override
-        void dispatch(Event event, Collection<EventBus.Subscriber> subscribers) {
+        protected void dispatch(Event event, Collection<EventBus.Subscriber> subscribers) {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
             subscribers.forEach(subscriber -> subscriber.dispatch(event));
@@ -86,7 +86,7 @@ public abstract class EventDispatcher {
         private final ThreadLocal<Boolean> isThreadDispatching = ThreadLocal.withInitial(() -> false);
 
         @Override
-        void dispatch(Event event, Collection<EventBus.Subscriber> subscribers) {
+        protected void dispatch(Event event, Collection<EventBus.Subscriber> subscribers) {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
 
