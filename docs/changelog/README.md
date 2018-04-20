@@ -4,7 +4,8 @@
 
 ### Version History
 
-* 2018-03-31 [1.0.0](1.0.0.md) (latest)
+* 2018-04-20 [1.1.0](1.1.0.md) (latest)
+* 2018-03-31 [1.0.0](1.0.0.md)
 
 
 This library is strictly following [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
