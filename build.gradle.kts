@@ -197,12 +197,13 @@ data class Deployment(
 )
 
 repositories {
+    jcenter()
     mavenCentral()
 }
 
 dependencies {
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
-    testCompile("org.testng:testng:6.13.1")
+    testCompile("org.testng:testng:6.14.3")
     testCompile("com.google.code.findbugs:jsr305:3.0.2") // Required because of a restriction in the chainsaw plugin
 }
