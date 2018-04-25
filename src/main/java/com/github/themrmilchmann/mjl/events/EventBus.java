@@ -325,16 +325,28 @@ public final class EventBus {
     public void post(Event event) {
         Objects.requireNonNull(event);
 
-        List<Subscriber> eventSubscribers = this.subscribers.entrySet().stream()
-            .filter(entry -> entry.getKey().isAssignableFrom(event.getClass()))
-            .flatMap(entry -> entry.getValue().stream())
-            .collect(Collectors.toList());
+        List<Subscriber> subscribers;
 
-        if (!eventSubscribers.isEmpty()) {
-            dispatcher.dispatch(event, eventSubscribers);
-        } else if (!(event instanceof DeadEvent)) {
-            eventSubscribers.removeIf(entry -> entry.method.getParameterTypes()[0] != DeadEvent.class);
-            post(new DeadEvent(event));
+        if (event instanceof DeadEvent) {
+            subscribers = this.subscribers.entrySet().stream()
+                .filter(entry -> DeadEvent.class.equals(entry.getKey()))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(Collectors.toList());
+
+            if (!subscribers.isEmpty()) {
+                this.dispatcher.dispatch(event, subscribers);
+            }
+        } else {
+            subscribers = this.subscribers.entrySet().stream()
+                .filter(e -> e.getKey().isAssignableFrom(event.getClass()))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(Collectors.toList());
+
+            if (subscribers.isEmpty()) {
+                post(new DeadEvent(event));
+            } else {
+                this.dispatcher.dispatch(event, subscribers);
+            }
         }
     }
 
