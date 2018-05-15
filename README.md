@@ -1,16 +1,40 @@
+# MJL Events
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-yellowgreen.svg?style=flat-square)](https://github.com/TheMrMilchmann/MJLEvents/blob/master/LICENSE)
 [![Build Status](https://img.shields.io/travis/TheMrMilchmann/MJLEvents.svg?style=flat-square)](https://travis-ci.org/TheMrMilchmann/MJLEvents)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=maven%20central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.mjl/mjl-events)
-
-
-MJL Events
-==========
 
 A **m**inmal **J**ava **l**ibrary providing a generic modular Event-System for Java 9 and above.
 
 
 The API of this library has been heavily influenced by [guava](https://github.com/google/guava) and other
 implementations.
+
+
+## Getting Started
+
+```java
+public class Sample {
+    
+    // Creating a basic EventBus
+    private static final EventBus bus = new EventBus.Builder().build();
+    
+    static {
+        // Registering a subscriber
+        bus.register(Sample.class, MethodHandles.lookup());
+        
+        // Posting an event
+        Event event = ...;
+        bus.post(event);
+    }
+    
+    @EventSubscriber
+    public static void handleEvent(Event event) {
+        // Handle the event
+    } 
+    
+}
+```
 
 
 ## License
