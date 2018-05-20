@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SLUG="TheMrMilchmann/MJLEvents"
-JDK="oraclejdk9"
+JDK="oraclejdk8"
 BRANCH="master"
 
 set -e

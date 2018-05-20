@@ -4,12 +4,13 @@
 [![Build Status](https://img.shields.io/travis/TheMrMilchmann/MJLEvents.svg?style=flat-square)](https://travis-ci.org/TheMrMilchmann/MJLEvents)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=maven%20central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.mjl/mjl-events)
 
-A **m**inmal **J**ava **l**ibrary providing a generic modular Event-System for Java 9 and above.
-
+A **m**inmal **J**ava **l**ibrary providing a generic modular Event-System for Java 8* and above.
 
 The API of this library has been heavily influenced by [guava](https://github.com/google/guava) and other
 implementations.
 
+
+(*) Versions older than `1.1.2` only run on Java 9 and above.
 
 ## Getting Started
 

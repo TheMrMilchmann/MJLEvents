@@ -24,7 +24,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.invoke.MethodHandles;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Test
 public final class SubscribingTests {
@@ -51,7 +54,7 @@ public final class SubscribingTests {
             .build();
         bus.register(this, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -63,7 +66,7 @@ public final class SubscribingTests {
             .build();
         bus.register(SubscribingTests.class, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -84,7 +87,7 @@ public final class SubscribingTests {
 
         }, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -111,7 +114,7 @@ public final class SubscribingTests {
             .build();
         bus.register(this, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -123,7 +126,7 @@ public final class SubscribingTests {
             .build();
         bus.register(SubscribingTests.class, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -144,7 +147,7 @@ public final class SubscribingTests {
 
         }, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -173,7 +176,7 @@ public final class SubscribingTests {
             .build();
         bus.register(this, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -185,7 +188,7 @@ public final class SubscribingTests {
             .build();
         bus.register(SubscribingTests.class, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -206,7 +209,7 @@ public final class SubscribingTests {
 
         }, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -225,7 +228,7 @@ public final class SubscribingTests {
 
         }, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
 
@@ -245,7 +248,7 @@ public final class SubscribingTests {
 
         }, MethodHandles.lookup());
 
-        CompletableFuture<?> future = new CompletableFuture<>().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }

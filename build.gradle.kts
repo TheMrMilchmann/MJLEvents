@@ -17,7 +17,6 @@ plugins {
     java
     maven
     signing
-    id("com.zyxist.chainsaw") version "0.3.1"
 }
 
 val artifactName = "mjl-events"
@@ -30,12 +29,8 @@ version = when (deployment.type) {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
-}
-
-javaModule {
-    exportedTestPackages = listOf("com.github.themrmilchmann.mjl.events.test")
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 artifacts {
@@ -66,12 +61,53 @@ signing {
 }
 
 tasks {
+    val compileJava: JavaCompile by getting
+
+    "compileJava9"(JavaCompile::class) {
+        val jdk9Props = arrayOf(
+            "JDK9_HOME",
+            "JAVA9_HOME",
+            "JDK_19",
+            "JDK_9"
+        )
+
+        val ftSource = fileTree("src/main-jdk9/java")
+        ftSource.include("**/*.java")
+        options.sourcepath = ftSource
+
+        classpath = files()
+        destinationDir = File(buildDir, "classes/java-9/main")
+
+        sourceCompatibility = "9"
+        targetCompatibility = "9"
+
+        afterEvaluate {
+            // module-path hack
+            options.compilerArgs.add("--module-path")
+            options.compilerArgs.add(compileJava.classpath.asPath)
+        }
+
+        val jdk9Home = jdk9Props.map { System.getenv(it)?.let { File(it) } }
+            .filterNotNull()
+            .firstOrNull(File::exists) ?: throw Error("Could not find valid JDK9 home")
+        options.forkOptions.javaHome = jdk9Home
+        options.isFork = true
+    }
+
     "test"(Test::class) {
         useTestNG()
     }
 
     "jar"(Jar::class) {
+        dependsOn("compileJava9")
+
         baseName = artifactName
+
+        into("META-INF/versions/9") {
+            from(tasks["compileJava9"].outputs.files) {
+                include("module-info.class")
+            }
+        }
 
         manifest {
             attributes(mapOf(
@@ -79,7 +115,8 @@ tasks {
                 "Specification-Version" to project.version,
                 "Specification-Vendor" to "Leon Linhart <themrmilchmann@gmail.com>",
                 "Implementation-Version" to project.version,
-                "Implementation-Vendor" to "Leon Linhart <themrmilchmann@gmail.com>"
+                "Implementation-Vendor" to "Leon Linhart <themrmilchmann@gmail.com>",
+                "Multi-Release" to "true"
             ))
         }
     }
@@ -205,5 +242,4 @@ dependencies {
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
     testCompile("org.testng:testng:6.14.3")
-    testCompile("com.google.code.findbugs:jsr305:3.0.2") // Required because of a restriction in the chainsaw plugin
 }

@@ -36,7 +36,7 @@ public final class PostingTests {
             .build();
         bus.register(this, MethodHandles.lookup());
 
-        CompletableFuture future = new CompletableFuture().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
@@ -60,7 +60,7 @@ public final class PostingTests {
             .build();
         bus.register(this, MethodHandles.lookup());
 
-        CompletableFuture future = new CompletableFuture().orTimeout(1, TimeUnit.SECONDS);
+        CompletableFuture future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestDeadEvent(future));
         future.join();
     }

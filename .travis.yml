@@ -1,23 +1,29 @@
+sudo: false
 dist: trusty
+language: java
 
 before_cache:
-    - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
-    - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 cache:
-    directories:
-        - $HOME/.gradle/caches/
-        - $HOME/.gradle/wrapper/
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
 
-language: java
+env:
+  global:
+    - JDK9_HOME=$(jdk_switcher home oraclejdk9)
+
 jdk:
-    - oraclejdk9
+  - oraclejdk8
+  - oraclejdk9
 
 script:
-    - ./gradlew check --info -S --parallel -Psnapshot
+  - ./gradlew check --info -S --parallel -Psnapshot
 
 after_success:
-    - .dev/ci/deploy.sh
+  - .dev/ci/deploy.sh
 
 branches:
-    except:
-        - gh-pages
+  except:
+    - gh-pages
