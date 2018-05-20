@@ -22,6 +22,10 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+/**
+ * <b>Do NOT use this interface in external code. It is strictly UNSUPPORTED and WILL BREAK when using this library as
+ * module!</b>
+ */
 @Documented
 @Nonnull
 @TypeQualifierDefault({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
