@@ -21,7 +21,7 @@ plugins {
 }
 
 val artifactName = "mjl-events"
-val nextVersion = "1.1.1"
+val nextVersion = "1.1.2"
 
 group = "com.github.themrmilchmann.mjl"
 version = when (deployment.type) {
