@@ -15,8 +15,8 @@
  */
 plugins {
     java
-    maven
     signing
+    `maven-publish`
 }
 
 val artifactName = "mjl-events"
@@ -31,33 +31,6 @@ version = when (deployment.type) {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-artifacts {
-    fun artifactNotation(artifact: String, classifier: String? = null) =
-        if (classifier == null) {
-            mapOf(
-                "file" to File(buildDir, "libs/$artifact-$version.jar"),
-                "name" to artifact,
-                "type" to "jar"
-            )
-        } else {
-            mapOf(
-                "file" to File(buildDir, "libs/$artifact-$version-$classifier.jar"),
-                "name" to artifact,
-                "type" to "jar",
-                "classifier" to classifier
-            )
-        }
-
-    add("archives", artifactNotation(artifactName))
-    add("archives", artifactNotation(artifactName, "sources"))
-    add("archives", artifactNotation(artifactName, "javadoc"))
-}
-
-signing {
-    isRequired = deployment.type == BuildType.RELEASE
-    sign(configurations["archives"])
 }
 
 tasks {
@@ -137,64 +110,69 @@ tasks {
         from(javadoc.outputs)
     }
 
-    val signArchives = "signArchives" {
+    "signArchives" {
         dependsOn(sourcesJar, javadocJar)
     }
+}
 
-    "uploadArchives"(Upload::class) {
-        dependsOn(signArchives)
+publishing {
+    repositories {
+        maven {
+            url = uri(deployment.repo)
 
-        repositories {
-            withConvention(MavenRepositoryHandlerConvention::class) {
-                mavenDeployer {
-                    withGroovyBuilder {
-                        "repository"("url" to deployment.repo) {
-                            "authentication"(
-                                "userName" to deployment.user,
-                                "password" to deployment.password
-                            )
-                        }
+            credentials {
+                username = deployment.user
+                password = deployment.password
+            }
+        }
+    }
+    (publications) {
+        "mavenJava"(MavenPublication::class) {
+            from(components["java"])
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
+
+            artifactId = artifactName
+
+            pom {
+                name.set(project.name)
+                description.set("A minimal Java library which provides an efficient and modular EventBus solution.")
+                packaging = "jar"
+                url.set("https://github.com/TheMrMilchmann/MJLEvents")
+
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://github.com/TheMrMilchmann/MJLEvents/blob/master/LICENSE")
+                        distribution.set("repo")
                     }
+                }
 
-                    if (deployment.type === BuildType.RELEASE) beforeDeployment { signing.signPom(this) }
-
-                    pom.project {
-                        withGroovyBuilder {
-                            "artifactId"(artifactName)
-
-                            "name"(project.name)
-                            "description"("A minimal Java library which provides an efficient and modular EventBus solution for Java 9 and above.")
-                            "packaging"("jar")
-                            "url"("https://github.com/TheMrMilchmann/MJLEvents")
-
-                            "licenses" {
-                                "license" {
-                                    "name"("The Apache License, Version 2.0")
-                                    "url"("https://github.com/TheMrMilchmann/MJLEvents/blob/master/LICENSE")
-                                    "distribution"("repo")
-                                }
-                            }
-
-                            "developers" {
-                                "developer" {
-                                    "id"("TheMrMilchmann")
-                                    "name"("Leon Linhart")
-                                    "email"("themrmilchmann@gmail.com")
-                                    "url"("https://github.com/TheMrMilchmann")
-                                }
-                            }
-
-                            "scm" {
-                                "connection"("scm:git:git://github.com/TheMrMilchmann/MJLEvents.git")
-                                "developerConnection"("scm:git:git://github.com/TheMrMilchmann/MJLEvents.git")
-                                "url"("https://github.com/TheMrMilchmann/MJLEvents.git")
-                            }
-                        }
+                developers {
+                    developer {
+                        id.set("TheMrMilchmann")
+                        name.set("Leon Linhart")
+                        email.set("themrmilchmann@gmail.com")
+                        url.set("https://github.com/TheMrMilchmann")
                     }
+                }
+
+                scm {
+                    connection.set("scm:git:git://github.com/TheMrMilchmann/MJLEvents.git")
+                    developerConnection.set("scm:git:git://github.com/TheMrMilchmann/MJLEvents.git")
+                    url.set("https://github.com/TheMrMilchmann/MJLEvents.git")
                 }
             }
         }
     }
+}
+
+signing {
+    sign(publishing.publications)
+}
+
+val signMavenJavaPublication by tasks.getting {
+    onlyIf { deployment.type === BuildType.RELEASE }
 }
 
 val Project.deployment: Deployment

@@ -11,7 +11,7 @@ if [ "$TRAVIS_REPO_SLUG" == "$SLUG" ] && [ "$TRAVIS_JDK_VERSION" == "$JDK" ] && 
 
     echo -e "[deploy.sh] Publishing snapshots...\n"
 
-    ./gradlew uploadArchives --parallel -Psnapshot
+    ./gradlew publish --parallel -Psnapshot
 
     echo -e "[deploy.sh] Published snapshots to OSSRH.\n"
 fi
