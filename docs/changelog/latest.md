@@ -1,9 +1,7 @@
-### 1.1.1
+### 1.1.2
 
-_Released 2018 Apr 25_
+_Release 2018 Jun 05_
 
-#### Fixes
+#### Improvements
 
-- Fixed an issue that could cause DeadEvents being dispatched to subscribers that expect a basic `Event` in a few edge-
-  cases.
-- Improved the general performance of `EventBus#post(Event)` by handling dead-events separately.
+- Lowered the required Java version to Java 8 (from 9).
