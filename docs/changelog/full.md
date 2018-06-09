@@ -1,6 +1,6 @@
 ### 1.1.3
 
-_Release 2018 Jun 06_
+_Release 2018 Jun 09_
 
 #### Fixes
 
