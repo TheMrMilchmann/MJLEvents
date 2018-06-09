@@ -46,7 +46,8 @@ tasks {
 
         val ftSource = fileTree("src/main-jdk9/java")
         ftSource.include("**/*.java")
-        options.sourcepath = ftSource
+        options.sourcepath = files("src/main-jdk9/java")
+        source = ftSource
 
         classpath = files()
         destinationDir = File(buildDir, "classes/java-9/main")
