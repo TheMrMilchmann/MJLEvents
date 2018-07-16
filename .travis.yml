@@ -17,6 +17,7 @@ env:
 jdk:
   - oraclejdk8
   - oraclejdk9
+  - openjdk10
 
 script:
   - ./gradlew check --info -S --parallel -Psnapshot
