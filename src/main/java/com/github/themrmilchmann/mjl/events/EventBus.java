@@ -390,7 +390,7 @@ public final class EventBus {
 
             this.bus.executor.execute(() -> {
                 try {
-                    this.handle.invokeWithArguments(event);
+                    this.handle.invoke(event);
                 } catch (Throwable t) {
                     this.bus.dispatchErrorHandler.onDispatchError(event, this, t);
                 }
