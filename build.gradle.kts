@@ -36,7 +36,7 @@ java {
 tasks {
     val compileJava: JavaCompile by getting
 
-    "compileJava9"(JavaCompile::class) {
+    create<JavaCompile>("compileJava9") {
         val jdk9Props = arrayOf(
             "JDK9_HOME",
             "JAVA9_HOME",
@@ -95,24 +95,20 @@ tasks {
         }
     }
 
-    val sourcesJar = "sourcesJar"(Jar::class) {
+    create<Jar>("sourcesJar") {
         baseName = artifactName
         classifier = "sources"
-        from(java.sourceSets["main"].allSource)
+        from(sourceSets["main"].allSource)
     }
 
     val javadoc = "javadoc"(Javadoc::class)
 
-    val javadocJar = "javadocJar"(Jar::class) {
+    create<Jar>("javadocJar") {
         dependsOn(javadoc)
 
         baseName = artifactName
         classifier = "javadoc"
-        from(javadoc.outputs)
-    }
-
-    "signArchives" {
-        dependsOn(sourcesJar, javadocJar)
+        from(javadoc.get().outputs)
     }
 }
 
@@ -128,7 +124,7 @@ publishing {
         }
     }
     (publications) {
-        "mavenJava"(MavenPublication::class) {
+        create<MavenPublication>("mavenJava") {
             from(components["java"])
             artifact(tasks["sourcesJar"])
             artifact(tasks["javadocJar"])
