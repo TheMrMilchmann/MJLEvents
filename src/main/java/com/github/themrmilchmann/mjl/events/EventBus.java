@@ -607,8 +607,7 @@ public final class EventBus {
          */
         @SuppressWarnings("WeakerAccess")
         public Builder setSubscriberMarker(Class<? extends Annotation> type) {
-            type = Objects.requireNonNull(type);
-            Retention retention = type.getAnnotation(Retention.class);
+            Retention retention = Objects.requireNonNull(type).getAnnotation(Retention.class);
 
             if (retention == null || retention.value() != RetentionPolicy.RUNTIME)
                 throw new IllegalArgumentException(type + " is not visible at runtime");
