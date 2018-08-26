@@ -85,6 +85,17 @@ import java.util.stream.Collectors;
  */
 public final class EventBus {
 
+    /**
+     * Returns a builder for an {@code EventBus}.
+     *
+     * @return  a builder instance
+     *
+     * @since   1.2.0
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
     private final ConcurrentMap<Class<? extends Event>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
 
     private final EventDispatcher dispatcher;
@@ -493,8 +504,11 @@ public final class EventBus {
         /**
          * Creates a new builder instance.
          *
+         * @deprecated Use {@link EventBus#builder()} instead.
+         *
          * @since   1.0.0
          */
+        @Deprecated // TODO remove in 2.0.0
         public Builder() {
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
             // Get rid of this the next time the major version is increased. (This shipped in 1.0.0, so I'll keep it for now)

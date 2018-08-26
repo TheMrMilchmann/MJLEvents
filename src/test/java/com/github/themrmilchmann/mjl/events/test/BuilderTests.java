@@ -23,24 +23,24 @@ public final class BuilderTests {
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$setDispatcher$Nullability() {
-        new EventBus.Builder().setDispatcher(null);
+        EventBus.builder().setDispatcher(null);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$setExecutor$Nullability() {
-        new EventBus.Builder().setExecutor(null);
+        EventBus.builder().setExecutor(null);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$setSubscriberMarker$Nullability() {
-        new EventBus.Builder().setSubscriberMarker(null);
+        EventBus.builder().setSubscriberMarker(null);
     }
 
     private @interface IllegalSubscriberMarker {}
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testParams$setSubscriberMarker$Checks() {
-        new EventBus.Builder().setSubscriberMarker(IllegalSubscriberMarker.class);
+        EventBus.builder().setSubscriberMarker(IllegalSubscriberMarker.class);
     }
 
 }
