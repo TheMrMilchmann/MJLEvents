@@ -18,6 +18,7 @@ jdk:
   - oraclejdk8
   - oraclejdk9
   - openjdk10
+  - openjdk11
 
 script:
   - ./gradlew check --info -S --parallel -Psnapshot
