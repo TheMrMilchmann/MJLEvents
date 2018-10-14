@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /**
- * Provides a minimal EventBus for publish-subscribe-style communication between components.
+ * A minmal Java library which provides an efficient and modular Event-System (for Java 8 and later).
  *
  * @see com.github.themrmilchmann.mjl.events.EventBus
  *

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 /**
- * @since   1.0.0
+ * Provides an EventBus for publish-subscribe-style communication between components.
  *
- * @author  Leon Linhart
+ * @see com.github.themrmilchmann.mjl.events.EventBus
  */
 @NonNullApi
 package com.github.themrmilchmann.mjl.events;

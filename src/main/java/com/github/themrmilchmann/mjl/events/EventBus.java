@@ -158,7 +158,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "unchecked", "WeakerAccess"})
+    @SuppressWarnings({"unused", "unchecked"})
     public void register(Class<?> cls, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(cls);
         Objects.requireNonNull(lookup);
@@ -220,7 +220,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "unchecked", "WeakerAccess"})
+    @SuppressWarnings({"unused", "unchecked"})
     public void register(Object object, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(object);
         Objects.requireNonNull(lookup);
@@ -266,7 +266,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings({"unused"})
     public void unregister(Object object) {
         Objects.requireNonNull(object);
 
@@ -492,7 +492,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings("unused")
     public static final class Builder {
 
         private EventDispatcher dispatcher;
@@ -596,7 +595,7 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"WeakerAccess", "unused"})
         public Builder setSelfCleaning(boolean value) {
             this.isSelfCleaning = value;
             return this;
@@ -619,7 +618,6 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings("WeakerAccess")
         public Builder setSubscriberMarker(Class<? extends Annotation> type) {
             Retention retention = Objects.requireNonNull(type).getAnnotation(Retention.class);
 

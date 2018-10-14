@@ -13,11 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * @since   1.0.0
- *
- * @author  Leon Linhart
- */
 @NonNullApi
 package com.github.themrmilchmann.mjl.events.util.concurrent;
 
