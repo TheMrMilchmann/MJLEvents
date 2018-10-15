@@ -1,7 +1,8 @@
-### 1.1.3
+### 1.2.0
 
-_Released 2018 Jun 09_
+_Released 2018 Oct 15_
 
-#### Fixes
+#### Improvements
 
-- Re-added the `module-info` file that was missing in `1.1.2` due to a bug in the build scripts.
+- Added a factory method to `EventBus` and deprecated the public constructor for `EventBus#Builder`.
+- JavaDoc deployment to Github Pages.
