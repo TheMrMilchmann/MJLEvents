@@ -18,11 +18,7 @@ jdk:
   - oraclejdk8
   - openjdk11
 
-script:
-  - ./gradlew check --info -S --parallel -Psnapshot
-
-after_success:
-  - .dev/ci/deploy.sh
+script: ./.dev/ci/deploy.sh
 
 branches:
   except:
