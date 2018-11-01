@@ -1,7 +1,7 @@
 # MJL Events
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-yellowgreen.svg?style=flat-square)](https://github.com/TheMrMilchmann/MJLEvents/blob/master/LICENSE)
-[![Build Status](https://img.shields.io/travis/TheMrMilchmann/MJLEvents.svg?style=flat-square)](https://travis-ci.org/TheMrMilchmann/MJLEvents)
+[![Build Status](https://img.shields.io/travis/TheMrMilchmann/MJLEvents/master.svg?style=flat-square)](https://travis-ci.org/TheMrMilchmann/MJLEvents)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=maven%20central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.mjl/mjl-events)
 
 A **m**inmal **J**ava **l**ibrary which provides an efficient and modular Event-System (for Java 8 and later*).
