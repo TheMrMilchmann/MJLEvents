@@ -42,7 +42,6 @@ public final class DeadEvent implements Event {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings("unused")
     public Event getEvent() {
         return this.event;
     }

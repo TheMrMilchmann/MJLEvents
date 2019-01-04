@@ -160,6 +160,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
+    @SuppressWarnings("unchecked")
     public void register(Class<?> cls, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(cls);
         Objects.requireNonNull(lookup);
@@ -182,14 +183,14 @@ public final class EventBus {
                     Class<? extends Event> eventType = (Class<? extends Event>) methodHandle.type().parameterList().get(0);
                     Subscriber subscriber = new Subscriber(this, cls, method, methodHandle);
 
-                    eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList()).add(subscriber);
+                    eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
                 } catch (IllegalAccessException e) {
                     throw new IllegalArgumentException("Unexpected exception during subscriber creation", e);
                 }
             }
         }
 
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet()).addAll(subscribers));
+        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
     }
 
     /**
@@ -221,6 +222,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
+    @SuppressWarnings("unchecked")
     public void register(Object object, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(object);
         Objects.requireNonNull(lookup);
@@ -243,14 +245,14 @@ public final class EventBus {
                     Class<? extends Event> eventType = (Class<? extends Event>) method.getParameterTypes()[0];
                     Subscriber subscriber = new Subscriber(this, object, method, methodHandle);
 
-                    eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList()).add(subscriber);
+                    eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
                 } catch (IllegalAccessException e) {
                     throw new IllegalArgumentException("Unexpected exception during subscriber creation", e);
                 }
             }
         }
 
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet()).addAll(subscribers));
+        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
     }
 
     /**

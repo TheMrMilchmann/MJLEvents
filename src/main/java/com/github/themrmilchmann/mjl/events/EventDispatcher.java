@@ -52,7 +52,6 @@ public abstract class EventDispatcher {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings("WeakerAccess")
     public static EventDispatcher perThreadDispatchQueue() {
         return new PerThreadDispatchQueueDispatcher();
     }
