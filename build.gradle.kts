@@ -15,6 +15,7 @@
  */
 plugins {
     java
+    id("me.champeau.gradle.jmh") version "0.4.7"
     signing
     `maven-publish`
 }
