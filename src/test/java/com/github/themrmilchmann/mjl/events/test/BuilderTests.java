@@ -18,6 +18,7 @@ package com.github.themrmilchmann.mjl.events.test;
 import com.github.themrmilchmann.mjl.events.EventBus;
 import org.testng.annotations.Test;
 
+@SuppressWarnings("ConstantConditions")
 @Test
 public final class BuilderTests {
 

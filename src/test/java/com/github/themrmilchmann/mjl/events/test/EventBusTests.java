@@ -20,6 +20,7 @@ import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
 
+@SuppressWarnings("ConstantConditions")
 @Test
 public final class EventBusTests {
 

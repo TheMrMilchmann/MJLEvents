@@ -24,10 +24,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.invoke.MethodHandles;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Test
 public final class SubscribingTests {
@@ -240,7 +237,6 @@ public final class SubscribingTests {
 
         bus.register(new Object() {
 
-            @SuppressWarnings("unused")
             @EventSubscriber
             public void anonymousSubscriber(Object event) {
                 ((TestEvent.TestCompletableFutureEvent) event).getFuture().complete(null);
