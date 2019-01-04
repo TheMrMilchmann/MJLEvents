@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * An EventBus for publish-subscribe-style communication between components.
@@ -99,12 +100,14 @@ public final class EventBus {
     private final ConcurrentMap<Class<? extends Event>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
 
     private final EventDispatcher dispatcher;
+
+    @Nullable
     private final DispatchErrorHandler dispatchErrorHandler;
     private final Executor executor;
     private final Class<? extends Annotation> subscriberMarker;
     private final boolean isSelfCleaning;
 
-    private EventBus(EventDispatcher dispatcher, DispatchErrorHandler dispatchErrorHandler, Executor executor, Class<? extends Annotation> subscriberMarker, boolean isSelfCleaning) {
+    private EventBus(EventDispatcher dispatcher, @Nullable DispatchErrorHandler dispatchErrorHandler, Executor executor, Class<? extends Annotation> subscriberMarker, boolean isSelfCleaning) {
         this.dispatcher = dispatcher;
         this.dispatchErrorHandler = dispatchErrorHandler;
         this.executor = executor;
@@ -124,7 +127,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
     public Class<? extends Annotation> getSubscriberMarker() {
         return this.subscriberMarker;
     }
@@ -158,7 +160,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "unchecked"})
     public void register(Class<?> cls, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(cls);
         Objects.requireNonNull(lookup);
@@ -220,7 +221,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "unchecked"})
     public void register(Object object, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(object);
         Objects.requireNonNull(lookup);
@@ -266,7 +266,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused"})
     public void unregister(Object object) {
         Objects.requireNonNull(object);
 
@@ -288,7 +287,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
     public void clear() {
         if (!this.isSelfCleaning) {
             synchronized (this) {
@@ -303,7 +301,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings("unused")
     public void purge() {
         synchronized (this) {
             subscribers.clear();
@@ -395,7 +392,6 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings("WeakerAccess")
         public void dispatch(Event event) {
             Objects.requireNonNull(event);
 
@@ -403,7 +399,8 @@ public final class EventBus {
                 try {
                     this.handle.invoke(event);
                 } catch (Throwable t) {
-                    this.bus.dispatchErrorHandler.onDispatchError(event, this, t);
+                    if (this.bus.dispatchErrorHandler != null)
+                        this.bus.dispatchErrorHandler.onDispatchError(event, this, t);
                 }
             });
         }
@@ -420,7 +417,6 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings("unused")
         public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
             return this.method.getAnnotation(annotationClass);
         }
@@ -438,7 +434,6 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings("unused")
         public <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
             return this.method.getAnnotationsByType(annotationClass);
         }
@@ -450,7 +445,6 @@ public final class EventBus {
          *
          * @since   1.1.0
          */
-        @SuppressWarnings("unused")
         public EventBus getBus() {
             return this.bus;
         }
@@ -462,7 +456,6 @@ public final class EventBus {
          *
          * @since   1.1.0
          */
-        @SuppressWarnings("unused")
         public Object getOrigin() {
             return this.origin;
         }
@@ -478,7 +471,6 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings("unused")
         public boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
             return this.method.isAnnotationPresent(annotationClass);
         }
@@ -495,23 +487,15 @@ public final class EventBus {
     public static final class Builder {
 
         private EventDispatcher dispatcher;
-        private DispatchErrorHandler dispatchErrorHandler;
         private Executor executor;
         private Class<? extends Annotation> subscriberMarker;
         private boolean isSelfCleaning;
 
-        /**
-         * Creates a new builder instance.
-         *
-         * @deprecated Use {@link EventBus#builder()} instead.
-         *
-         * @since   1.0.0
-         */
-        @Deprecated // TODO remove in 2.0.0
-        public Builder() {
+        @Nullable
+        private DispatchErrorHandler dispatchErrorHandler;
+
+        private Builder() {
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
-            // Get rid of this the next time the major version is increased. (This shipped in 1.0.0, so I'll keep it for now)
-            this.dispatchErrorHandler = (e, s, t) -> t.printStackTrace();
             this.executor = MJLExecutors.directExecutor();
             this.subscriberMarker = EventSubscriber.class;
             this.isSelfCleaning = false;
@@ -557,8 +541,7 @@ public final class EventBus {
          *
          * @since   1.1.0
          */
-        @SuppressWarnings("WeakerAccess")
-        public Builder setDispatchErrorHandler(DispatchErrorHandler handler) {
+        public Builder setDispatchErrorHandler(@Nullable DispatchErrorHandler handler) {
             this.dispatchErrorHandler = Objects.requireNonNull(handler);
             return this;
         }
@@ -595,7 +578,6 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        @SuppressWarnings({"WeakerAccess", "unused"})
         public Builder setSelfCleaning(boolean value) {
             this.isSelfCleaning = value;
             return this;

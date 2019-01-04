@@ -34,9 +34,7 @@ java {
 }
 
 tasks {
-    val compileJava: JavaCompile by getting
-
-    create<JavaCompile>("compileJava9") {
+    val compileJava9 = create<JavaCompile>("compileJava9") {
         val jdk9Props = arrayOf(
             "JDK9_HOME",
             "JAVA9_HOME",
@@ -58,11 +56,11 @@ tasks {
         afterEvaluate {
             // module-path hack
             options.compilerArgs.add("--module-path")
-            options.compilerArgs.add(compileJava.classpath.asPath)
+            options.compilerArgs.add(compileJava.get().classpath.asPath)
         }
 
-        val jdk9Home = jdk9Props.map { System.getenv(it)?.let { File(it) } }
-            .filterNotNull()
+        val jdk9Home = jdk9Props.mapNotNull { System.getenv(it) }
+            .map { File(it) }
             .firstOrNull(File::exists) ?: throw Error("Could not find valid JDK9 home")
         options.forkOptions.javaHome = jdk9Home
         options.isFork = true
@@ -73,12 +71,12 @@ tasks {
     }
 
     "jar"(Jar::class) {
-        dependsOn("compileJava9")
+        dependsOn(compileJava9)
 
         baseName = artifactName
 
         into("META-INF/versions/9") {
-            from(tasks["compileJava9"].outputs.files) {
+            from(compileJava9.outputs.files) {
                 include("module-info.class")
             }
         }
@@ -209,7 +207,6 @@ data class Deployment(
 )
 
 repositories {
-    jcenter()
     mavenCentral()
 }
 
