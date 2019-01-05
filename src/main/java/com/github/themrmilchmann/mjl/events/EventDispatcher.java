@@ -59,6 +59,9 @@ public abstract class EventDispatcher {
     /**
      * Dispatches the event to the subscribers.
      *
+     * <p>Implementations are responsible for
+     * {@link com.github.themrmilchmann.mjl.events.EventBus.Subscriber#dispatch(Event) dispatching} events.</p>
+     *
      * @param event         the event to dispatch
      * @param subscribers   the subscribers to dispatch the event to
      *
@@ -89,11 +92,11 @@ public abstract class EventDispatcher {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
 
-            Queue<QueuedEvent> eventQueue = threadLocalQueue.get();
+            Queue<QueuedEvent> eventQueue = this.threadLocalQueue.get();
             eventQueue.offer(new QueuedEvent(event, subscribers));
 
-            if (!isThreadDispatching.get()) {
-                isThreadDispatching.set(true);
+            if (!this.isThreadDispatching.get()) {
+                this.isThreadDispatching.set(true);
 
                 try {
                     QueuedEvent queuedEvent;
@@ -103,8 +106,8 @@ public abstract class EventDispatcher {
                         queuedEvent.subscribers.forEach(subscriber -> subscriber.dispatch(e));
                     }
                 } finally {
-                    threadLocalQueue.remove();
-                    isThreadDispatching.remove();
+                    this.threadLocalQueue.remove();
+                    this.isThreadDispatching.remove();
                 }
             }
         }
