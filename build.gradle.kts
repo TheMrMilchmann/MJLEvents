@@ -80,6 +80,8 @@ tasks {
             from(compileJava9.outputs.files) {
                 include("module-info.class")
             }
+
+            includeEmptyDirs = false
         }
 
         manifest {
@@ -98,6 +100,14 @@ tasks {
         baseName = artifactName
         classifier = "sources"
         from(sourceSets["main"].allSource)
+
+        into("META-INF/versions/9") {
+            from(compileJava9.inputs.files.filter(File::isDirectory)) {
+                exclude("**/Stub.java")
+            }
+
+            includeEmptyDirs = false
+        }
     }
 
     val javadoc = "javadoc"(Javadoc::class)
