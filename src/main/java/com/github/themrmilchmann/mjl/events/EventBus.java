@@ -544,7 +544,7 @@ public final class EventBus {
          * @since   1.1.0
          */
         public Builder setDispatchErrorHandler(@Nullable DispatchErrorHandler handler) {
-            this.dispatchErrorHandler = Objects.requireNonNull(handler);
+            this.dispatchErrorHandler = handler;
             return this;
         }
 

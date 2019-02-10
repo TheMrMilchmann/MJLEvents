@@ -27,6 +27,10 @@ public final class BuilderTests {
         EventBus.builder().setDispatcher(null);
     }
 
+    public void testParams$setDispatchErrorHandler() {
+        EventBus.builder().setDispatchErrorHandler(null);
+    }
+
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$setExecutor$Nullability() {
         EventBus.builder().setExecutor(null);
