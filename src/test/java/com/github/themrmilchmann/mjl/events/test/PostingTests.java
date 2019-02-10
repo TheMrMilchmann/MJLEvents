@@ -54,13 +54,15 @@ public final class PostingTests {
     }
 
     public void testDeadPost() {
+        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
+
         EventBus bus = EventBus.builder()
+            .setDeadEventHandler(it -> future.complete(null))
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(MJLExecutors.directExecutor())
             .build();
         bus.register(this, MethodHandles.lookup());
 
-        CompletableFuture future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestDeadEvent(future));
         future.join();
     }
@@ -83,16 +85,6 @@ public final class PostingTests {
     @EventSubscriber
     private void instanceCLSubscriber(TestEvent.TestCountdownLatchEvent event) {
         event.getLatch().countDown();
-    }
-
-    @SuppressWarnings("unused")
-    @EventSubscriber
-    private void instanceDeadSubscriber(DeadEvent event) {
-        Event source = event.getEvent();
-
-        if (source instanceof TestDeadEvent) {
-            ((TestDeadEvent) source).getFuture().complete(null);
-        }
     }
 
 }

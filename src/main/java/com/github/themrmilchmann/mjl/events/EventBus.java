@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -58,8 +59,9 @@ import javax.annotation.Nullable;
  * <h2>Dead Events</h2>
  *
  * <p>If a posted event cannot be received by any subscriber, it is considered "dead". Dead events are wrapped in an
- * instance of {@link DeadEvent} and posted again. Subscribing to these events can be useful for debugging purposes.</p>
- **
+ * instance of {@link DeadEvent} and passed to the bus' dead-event handler. Listening to these events can be useful for
+ * debugging purposes.</p>
+ *
  * <p>A {@code DeadEvent} is dispatched only to subscribers who explicitly expect it. (A subscriber method which expects
  * the common supertype {@code Event} will not receive dead events.</p>
  *
@@ -107,12 +109,23 @@ public final class EventBus {
     private final Class<? extends Annotation> subscriberMarker;
     private final boolean isSelfCleaning;
 
-    private EventBus(EventDispatcher dispatcher, @Nullable DispatchErrorHandler dispatchErrorHandler, Executor executor, Class<? extends Annotation> subscriberMarker, boolean isSelfCleaning) {
+    @Nullable
+    private final Consumer<DeadEvent> deadEventHandler;
+
+    private EventBus(
+        EventDispatcher dispatcher,
+        @Nullable DispatchErrorHandler dispatchErrorHandler,
+        Executor executor,
+        Class<? extends Annotation> subscriberMarker,
+        boolean isSelfCleaning,
+        @Nullable Consumer<DeadEvent> deadEventHandler
+    ) {
         this.dispatcher = dispatcher;
         this.dispatchErrorHandler = dispatchErrorHandler;
         this.executor = executor;
         this.subscriberMarker = subscriberMarker;
         this.isSelfCleaning = isSelfCleaning;
+        this.deadEventHandler = deadEventHandler;
     }
 
     /**
@@ -316,9 +329,8 @@ public final class EventBus {
      * bus whose accepted type {@link Class#isAssignableFrom(Class) is assignable from} the event's type.</p>
      *
      * <p>If a posted event cannot be received by any subscriber, it is considered "dead". Dead events are wrapped in an
-     * instance of {@link DeadEvent} and posted again. Subscribing to these events can be useful for debugging purposes.
-     * (Unlike any other event, a dead event will only be dispatched to subscribers that explicitly accept a
-     * {@linkplain DeadEvent}.</p>
+     * instance of {@link DeadEvent} and passed to the bus' dead-event handler. Listening to these events can be useful
+     * for debugging purposes.</p>
      *
      * <p>The subscribers are called in no particular order, some time in the future and no guarantees are made that the
      * events are passed to the subscribers in the order in which they are posted to the bus. This behaviour may be
@@ -335,28 +347,15 @@ public final class EventBus {
     public void post(Event event) {
         Objects.requireNonNull(event);
 
-        List<Subscriber> subscribers;
+        List<Subscriber> subscribers = this.subscribers.entrySet().stream()
+            .filter(e -> e.getKey().isAssignableFrom(event.getClass()))
+            .flatMap(entry -> entry.getValue().stream())
+            .collect(Collectors.toList());
 
-        if (event instanceof DeadEvent) {
-            subscribers = this.subscribers.entrySet().stream()
-                .filter(entry -> DeadEvent.class.equals(entry.getKey()))
-                .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toList());
-
-            if (!subscribers.isEmpty()) {
-                this.dispatcher.dispatch(event, subscribers);
-            }
+        if (subscribers.isEmpty()) {
+            if (this.deadEventHandler != null) this.deadEventHandler.accept(new DeadEvent(event));
         } else {
-            subscribers = this.subscribers.entrySet().stream()
-                .filter(e -> e.getKey().isAssignableFrom(event.getClass()))
-                .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toList());
-
-            if (subscribers.isEmpty()) {
-                post(new DeadEvent(event));
-            } else {
-                this.dispatcher.dispatch(event, subscribers);
-            }
+            this.dispatcher.dispatch(event, subscribers);
         }
     }
 
@@ -496,6 +495,9 @@ public final class EventBus {
         @Nullable
         private DispatchErrorHandler dispatchErrorHandler;
 
+        @Nullable
+        private Consumer<DeadEvent> deadEventHandler;
+
         private Builder() {
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
             this.executor = MJLExecutors.directExecutor();
@@ -511,7 +513,7 @@ public final class EventBus {
          * @since   1.0.0
          */
         public EventBus build() {
-            return new EventBus(this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning);
+            return new EventBus(this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning, this.deadEventHandler);
         }
 
         /**
@@ -545,6 +547,20 @@ public final class EventBus {
          */
         public Builder setDispatchErrorHandler(@Nullable DispatchErrorHandler handler) {
             this.dispatchErrorHandler = handler;
+            return this;
+        }
+
+        /**
+         * Sets the dead-event handler that will be used by the bus.
+         *
+         * @param handler   the dead-event handler for the bus
+         *
+         * @return  this builder instance
+         *
+         * @since   2.0.0
+         */
+        public Builder setDeadEventHandler(@Nullable Consumer<DeadEvent> handler) {
+            this.deadEventHandler = handler;
             return this;
         }
 

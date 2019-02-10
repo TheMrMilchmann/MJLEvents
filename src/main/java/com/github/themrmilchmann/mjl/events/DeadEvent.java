@@ -15,19 +15,22 @@
  */
 package com.github.themrmilchmann.mjl.events;
 
+import java.util.function.Consumer;
+
 /**
- * A specialized {@link Event} that is {@link EventBus#post(Event) posted} whenever an event without any listening
- * subscribers is posted.
+ * An object that is indirectly {@link EventBus#post(Event) posted} whenever an event without any listening subscribers
+ * is posted.
  *
- * <p>This event is mainly useful for debugging purposed.</p>
+ * <p>This is useful mainly for debugging purposed.</p>
  *
  * @see EventBus#post(Event)
+ * @see EventBus.Builder#setDeadEventHandler(Consumer)
  *
  * @since   1.0.0
  *
  * @author  Leon Linhart
  */
-public final class DeadEvent implements Event {
+public final class DeadEvent {
 
     private final Event event;
 
