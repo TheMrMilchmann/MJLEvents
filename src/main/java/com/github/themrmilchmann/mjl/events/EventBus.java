@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -173,7 +174,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings("unchecked")
     public void register(Class<?> cls, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(cls);
         Objects.requireNonNull(lookup);
@@ -181,27 +181,11 @@ public final class EventBus {
         Map<Class<? extends Event>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
         Method[] methods = cls.getDeclaredMethods();
 
-        for (Method method : methods) {
-            int mods = method.getModifiers();
-
-            if (!method.isSynthetic() && method.isAnnotationPresent(subscriberMarker) && Modifier.isStatic(mods)) {
-                if (method.getReturnType() != void.class)
-                    throw new IllegalArgumentException("Subscriber method must have void return type");
-
-                if (method.getParameterCount() != 1 || !Event.class.isAssignableFrom(method.getParameterTypes()[0]))
-                    throw new IllegalArgumentException("Subscriber method must only have one parameter of a type that Event can be assigned to");
-
-                try {
-                    MethodHandle methodHandle = lookup.unreflect(method);
-                    Class<? extends Event> eventType = (Class<? extends Event>) methodHandle.type().parameterList().get(0);
-                    Subscriber subscriber = new Subscriber(this, cls, method, methodHandle);
-
-                    eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalArgumentException("Unexpected exception during subscriber creation", e);
-                }
-            }
-        }
+        //noinspection NullableProblems
+        this.register(methods, eventSubscribers, cls,
+            method -> !method.isSynthetic() && method.isAnnotationPresent(this.subscriberMarker) && Modifier.isStatic(method.getModifiers()),
+            lookup::unreflect
+        );
 
         eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
     }
@@ -235,7 +219,6 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    @SuppressWarnings("unchecked")
     public void register(Object object, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(object);
         Objects.requireNonNull(lookup);
@@ -243,10 +226,18 @@ public final class EventBus {
         Map<Class<? extends Event>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
         Method[] methods = object.getClass().getDeclaredMethods();
 
-        for (Method method : methods) {
-            int mods = method.getModifiers();
+        this.register(methods, eventSubscribers, object,
+            method -> !method.isSynthetic() && method.isAnnotationPresent(this.subscriberMarker) && !Modifier.isStatic(method.getModifiers()),
+            method -> lookup.unreflect(method).bindTo(object)
+        );
 
-            if (!method.isSynthetic() && method.isAnnotationPresent(subscriberMarker) && !Modifier.isStatic(mods)) {
+        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void register(Method[] methods, Map<Class<? extends Event>, Collection<Subscriber>> eventSubscribers, Object instance, Predicate<Method> filter, LookupFactory factory) {
+        for (Method method : methods) {
+            if (filter.test(method)) {
                 if (method.getReturnType() != void.class)
                     throw new IllegalArgumentException("Subscriber method must have void return type");
 
@@ -254,9 +245,9 @@ public final class EventBus {
                     throw new IllegalArgumentException("Subscriber method must only have one parameter of a type that Event can be assigned to");
 
                 try {
-                    MethodHandle methodHandle = lookup.unreflect(method).bindTo(object);
+                    MethodHandle methodHandle = factory.apply(method);
                     Class<? extends Event> eventType = (Class<? extends Event>) method.getParameterTypes()[0];
-                    Subscriber subscriber = new Subscriber(this, object, method, methodHandle);
+                    Subscriber subscriber = new Subscriber(this, instance, method, methodHandle);
 
                     eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
                 } catch (IllegalAccessException e) {
@@ -264,8 +255,13 @@ public final class EventBus {
                 }
             }
         }
+    }
 
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
+    @FunctionalInterface
+    private interface LookupFactory {
+
+        MethodHandle apply(Method method) throws IllegalAccessException;
+
     }
 
     /**
