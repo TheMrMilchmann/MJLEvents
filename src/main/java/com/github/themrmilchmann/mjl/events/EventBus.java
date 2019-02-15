@@ -87,7 +87,7 @@ import javax.annotation.Nullable;
  *
  * @author  Leon Linhart
  */
-public final class EventBus {
+public final class EventBus<E extends Event> {
 
     /**
      * Returns a builder for an {@code EventBus}.
@@ -96,12 +96,27 @@ public final class EventBus {
      *
      * @since   1.2.0
      */
-    public static Builder builder() {
-        return new Builder();
+    public static Builder<Event> builder() {
+        return new Builder<>(Event.class);
     }
 
-    private final ConcurrentMap<Class<? extends Event>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
+    /**
+     * Returns a builder for an {@code EventBus}.
+     *
+     * @param <E>   the type of the events
+     * @param cls   the type of the events
+     *
+     * @return  a builder instance
+     *
+     * @since   2.0.0
+     */
+    public static <E extends Event> Builder<E> builder(Class<E> cls) {
+        return new Builder<>(cls);
+    }
 
+    private final ConcurrentMap<Class<? extends E>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
+
+    private final Class<E> type;
     private final EventDispatcher dispatcher;
 
     @Nullable
@@ -114,6 +129,7 @@ public final class EventBus {
     private final Consumer<DeadEvent> deadEventHandler;
 
     private EventBus(
+        Class<E> type,
         EventDispatcher dispatcher,
         @Nullable DispatchErrorHandler dispatchErrorHandler,
         Executor executor,
@@ -121,6 +137,7 @@ public final class EventBus {
         boolean isSelfCleaning,
         @Nullable Consumer<DeadEvent> deadEventHandler
     ) {
+        this.type = type;
         this.dispatcher = dispatcher;
         this.dispatchErrorHandler = dispatchErrorHandler;
         this.executor = executor;
@@ -178,7 +195,7 @@ public final class EventBus {
         Objects.requireNonNull(cls);
         Objects.requireNonNull(lookup);
 
-        Map<Class<? extends Event>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
+        Map<Class<? extends E>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
         Method[] methods = cls.getDeclaredMethods();
 
         //noinspection NullableProblems
@@ -223,7 +240,7 @@ public final class EventBus {
         Objects.requireNonNull(object);
         Objects.requireNonNull(lookup);
 
-        Map<Class<? extends Event>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
+        Map<Class<? extends E>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
         Method[] methods = object.getClass().getDeclaredMethods();
 
         this.register(methods, eventSubscribers, object,
@@ -235,18 +252,18 @@ public final class EventBus {
     }
 
     @SuppressWarnings("unchecked")
-    private void register(Method[] methods, Map<Class<? extends Event>, Collection<Subscriber>> eventSubscribers, Object instance, Predicate<Method> filter, LookupFactory factory) {
+    private void register(Method[] methods, Map<Class<? extends E>, Collection<Subscriber>> eventSubscribers, Object instance, Predicate<Method> filter, LookupFactory factory) {
         for (Method method : methods) {
             if (filter.test(method)) {
                 if (method.getReturnType() != void.class)
                     throw new IllegalArgumentException("Subscriber method must have void return type");
 
-                if (method.getParameterCount() != 1 || !Event.class.isAssignableFrom(method.getParameterTypes()[0]))
+                if (method.getParameterCount() != 1 || !this.type.isAssignableFrom(method.getParameterTypes()[0]))
                     throw new IllegalArgumentException("Subscriber method must only have one parameter of a type that Event can be assigned to");
 
                 try {
                     MethodHandle methodHandle = factory.apply(method);
-                    Class<? extends Event> eventType = (Class<? extends Event>) method.getParameterTypes()[0];
+                    Class<? extends E> eventType = (Class<? extends E>) method.getParameterTypes()[0];
                     Subscriber subscriber = new Subscriber(this, instance, method, methodHandle);
 
                     eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
@@ -340,7 +357,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    public void post(Event event) {
+    public <T extends E > void post(T event) {
         Objects.requireNonNull(event);
 
         List<Subscriber> subscribers = this.subscribers.entrySet().stream()
@@ -363,7 +380,7 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    public static final class Subscriber {
+    public static final class Subscriber<E extends Event> {
 
         private final EventBus bus;
         private final Object origin;
@@ -389,7 +406,7 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        public void dispatch(Event event) {
+        public void dispatch(E event) {
             Objects.requireNonNull(event);
 
             this.bus.executor.execute(() -> {
@@ -481,7 +498,9 @@ public final class EventBus {
      *
      * @since   1.0.0
      */
-    public static final class Builder {
+    public static final class Builder<E extends Event> {
+
+        private final Class<E> type;
 
         private EventDispatcher dispatcher;
         private Executor executor;
@@ -494,7 +513,8 @@ public final class EventBus {
         @Nullable
         private Consumer<DeadEvent> deadEventHandler;
 
-        private Builder() {
+        private Builder(Class<E> type) {
+            this.type = type;
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
             this.executor = MJLExecutors.directExecutor();
             this.subscriberMarker = EventSubscriber.class;
@@ -508,8 +528,8 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        public EventBus build() {
-            return new EventBus(this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning, this.deadEventHandler);
+        public EventBus<E> build() {
+            return new EventBus<>(this.type, this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning, this.deadEventHandler);
         }
 
         /**
@@ -525,7 +545,7 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        public Builder setDispatcher(EventDispatcher dispatcher) {
+        public Builder<E> setDispatcher(EventDispatcher dispatcher) {
             this.dispatcher = Objects.requireNonNull(dispatcher);
             return this;
         }
@@ -541,7 +561,7 @@ public final class EventBus {
          *
          * @since   1.1.0
          */
-        public Builder setDispatchErrorHandler(@Nullable DispatchErrorHandler handler) {
+        public Builder<E> setDispatchErrorHandler(@Nullable DispatchErrorHandler handler) {
             this.dispatchErrorHandler = handler;
             return this;
         }
@@ -555,7 +575,7 @@ public final class EventBus {
          *
          * @since   2.0.0
          */
-        public Builder setDeadEventHandler(@Nullable Consumer<DeadEvent> handler) {
+        public Builder<E> setDeadEventHandler(@Nullable Consumer<DeadEvent> handler) {
             this.deadEventHandler = handler;
             return this;
         }
@@ -573,7 +593,7 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        public Builder setExecutor(Executor executor) {
+        public Builder<E> setExecutor(Executor executor) {
             this.executor = Objects.requireNonNull(executor);
             return this;
         }
@@ -592,7 +612,7 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        public Builder setSelfCleaning(boolean value) {
+        public Builder<E> setSelfCleaning(boolean value) {
             this.isSelfCleaning = value;
             return this;
         }
@@ -614,7 +634,7 @@ public final class EventBus {
          *
          * @since   1.0.0
          */
-        public Builder setSubscriberMarker(Class<? extends Annotation> type) {
+        public Builder<E> setSubscriberMarker(Class<? extends Annotation> type) {
             Retention retention = Objects.requireNonNull(type).getAnnotation(Retention.class);
 
             if (retention == null || retention.value() != RetentionPolicy.RUNTIME)

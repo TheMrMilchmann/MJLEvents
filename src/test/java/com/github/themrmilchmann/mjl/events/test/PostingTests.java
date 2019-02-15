@@ -30,7 +30,7 @@ import static org.testng.Assert.*;
 public final class PostingTests {
 
     public void testSingleSubscriberPost() {
-        EventBus bus = EventBus.builder()
+        EventBus<Event> bus = EventBus.builder()
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(MJLExecutors.directExecutor())
             .build();
@@ -42,7 +42,7 @@ public final class PostingTests {
     }
 
     public void testAssignableResolutionPost() throws InterruptedException {
-        EventBus bus = EventBus.builder()
+        EventBus<Event> bus = EventBus.builder()
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(MJLExecutors.directExecutor())
             .build();
@@ -56,7 +56,7 @@ public final class PostingTests {
     public void testDeadPost() {
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
 
-        EventBus bus = EventBus.builder()
+        EventBus<Event> bus = EventBus.builder()
             .setDeadEventHandler(it -> future.complete(null))
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(MJLExecutors.directExecutor())

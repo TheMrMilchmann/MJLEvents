@@ -26,27 +26,27 @@ public final class EventBusTests {
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$subscribeCls$Nullability() {
-        EventBus bus = EventBus.builder().build();
+        EventBus<?> bus = EventBus.builder().build();
         bus.register(null, MethodHandles.lookup());
         bus.register(EventBusTests.class, null);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$subscribeObj$Nullability() {
-        EventBus bus = EventBus.builder().build();
+        EventBus<?> bus = EventBus.builder().build();
         bus.register(null, MethodHandles.lookup());
         bus.register(this, null);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$unsubscribe$Nullability() {
-        EventBus bus = EventBus.builder().build();
+        EventBus<?> bus = EventBus.builder().build();
         bus.unregister(null);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
     public void testParams$post$Nullability() {
-        EventBus bus = EventBus.builder().build();
+        EventBus<?> bus = EventBus.builder().build();
         bus.post(null);
     }
 
