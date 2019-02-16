@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.themrmilchmann.build.*
+
 plugins {
     java
     id("me.champeau.gradle.jmh") version "0.4.7"
@@ -25,7 +27,7 @@ val nextVersion = "2.0.0"
 
 group = "com.github.themrmilchmann.mjl"
 version = when (deployment.type) {
-    BuildType.SNAPSHOT -> "$nextVersion-SNAPSHOT"
+    com.github.themrmilchmann.build.BuildType.SNAPSHOT -> "$nextVersion-SNAPSHOT"
     else -> nextVersion
 }
 
@@ -178,44 +180,8 @@ signing {
 }
 
 val signMavenJavaPublication by tasks.getting {
-    onlyIf { deployment.type === BuildType.RELEASE }
+    onlyIf { deployment.type === com.github.themrmilchmann.build.BuildType.RELEASE }
 }
-
-val Project.deployment: Deployment
-    get() = when {
-        hasProperty("release") -> Deployment(
-            BuildType.RELEASE,
-            "https://oss.sonatype.org/service/local/staging/deploy/maven2/",
-            getProperty("sonatypeUsername"),
-            getProperty("sonatypePassword")
-        )
-        hasProperty("snapshot") -> Deployment(
-            BuildType.SNAPSHOT,
-            "https://oss.sonatype.org/content/repositories/snapshots/",
-            getProperty("sonatypeUsername"),
-            getProperty("sonatypePassword")
-        )
-        else -> Deployment(BuildType.LOCAL, repositories.mavenLocal().url.toString())
-    }
-
-fun Project.getProperty(k: String) =
-    if (extra.has(k))
-        extra[k] as String
-    else
-        System.getenv(k)
-
-enum class BuildType {
-    LOCAL,
-    SNAPSHOT,
-    RELEASE
-}
-
-data class Deployment(
-    val type: BuildType,
-    val repo: String,
-    val user: String? = null,
-    val password: String? = null
-)
 
 repositories {
     mavenCentral()
