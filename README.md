@@ -20,7 +20,7 @@ implementations.
 public class Sample {
     
     // Creating a basic EventBus
-    private static final EventBus bus = new EventBus.Builder().build();
+    private static final EventBus<Event> bus = EventBus.builder().build();
     
     static {
         // Registering a subscriber
