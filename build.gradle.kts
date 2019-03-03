@@ -76,7 +76,7 @@ tasks {
     "jar"(Jar::class) {
         dependsOn(compileJava9)
 
-        baseName = artifactName
+        archiveBaseName.set(artifactName)
 
         into("META-INF/versions/9") {
             from(compileJava9.outputs.files.filter(File::isDirectory)) {
@@ -99,8 +99,8 @@ tasks {
     }
 
     create<Jar>("sourcesJar") {
-        baseName = artifactName
-        classifier = "sources"
+        archiveBaseName.set(artifactName)
+        archiveClassifier.set("sources")
         from(sourceSets["main"].allSource)
 
         into("META-INF/versions/9") {
@@ -117,8 +117,8 @@ tasks {
     create<Jar>("javadocJar") {
         dependsOn(javadoc)
 
-        baseName = artifactName
-        classifier = "javadoc"
+        archiveBaseName.set(artifactName)
+        archiveClassifier.set("javadoc")
         from(javadoc.get().outputs)
     }
 }
