@@ -45,13 +45,13 @@ tasks {
             "JDK_9"
         )
 
-        val ftSource = fileTree("src/main-jdk9/java")
+        val ftSource = fileTree("src/main/java-jdk9")
         ftSource.include("**/*.java")
-        options.sourcepath = files("src/main-jdk9/java")
+        options.sourcepath = files("src/main/java-jdk9")
         source = ftSource
 
         classpath = files()
-        destinationDir = File(buildDir, "classes/java-9/main")
+        destinationDir = File(buildDir, "classes/java-jdk9/main")
 
         sourceCompatibility = "9"
         targetCompatibility = "9"
@@ -79,8 +79,8 @@ tasks {
         baseName = artifactName
 
         into("META-INF/versions/9") {
-            from(compileJava9.outputs.files) {
-                include("module-info.class")
+            from(compileJava9.outputs.files.filter(File::isDirectory)) {
+                exclude("**/Stub.class")
             }
 
             includeEmptyDirs = false
