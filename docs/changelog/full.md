@@ -1,3 +1,26 @@
+### 2.0.0
+
+_Released 2019 Mar 07_
+
+#### Improvements
+
+- Generified `EventBus` and related APIs.
+- Improved JavaDoc for dispatchers.
+- Include multi-release sources in source artifact.
+- Changed handling of dead events to be callback based.
+
+#### Fixes
+
+- `EventBus.Builder#setDispatchErrorHandler` now accepts `null` values as intended
+
+#### Breaking Changes
+
+- Removed public `EventBus.Builder` constructor (use `EventBus#builder` instead).
+- Removed default dispatch printing behavior.
+- Refactored `DeadEvent` handling to be callback based.
+    - `DeadEvent` no longer implements `Event` and may not be used as such.
+
+
 ### 1.2.0
 
 _Released 2018 Oct 15_
