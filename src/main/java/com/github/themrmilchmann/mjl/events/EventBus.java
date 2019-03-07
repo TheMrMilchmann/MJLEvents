@@ -351,13 +351,14 @@ public final class EventBus<E extends Event> {
      * However, it is guaranteed, that an event will only be dispatched to the subscribers that were subscribed to the
      * event before the event was posted.</p>
      *
+     * @param <T>   the type of the event
      * @param event the event to be dispatched to this bus' subscribers
      *
      * @throws NullPointerException if the given event is {@code null}
      *
      * @since   1.0.0
      */
-    public <T extends E > void post(T event) {
+    public <T extends E> void post(T event) {
         Objects.requireNonNull(event);
 
         List<Subscriber> subscribers = this.subscribers.entrySet().stream()
