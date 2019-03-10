@@ -8,8 +8,8 @@ BRANCH="master"
 set -e
 ./gradlew check --info -S --parallel -Psnapshot
 
-if [ "$TRAVIS_REPO_SLUG" == "$SLUG" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "$BRANCH" ]; then
-    if [ "$TRAVIS_JDK_VERSION" == "$JDK" ]; then
+if [ "$TRAVIS_REPO_SLUG" == "$SLUG" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+    if [ "$TRAVIS_JDK_VERSION" == "$JDK" ] && [ "$TRAVIS_BRANCH" == "$BRANCH" ]; then
         # Upload snapshot artifacts to OSSRH.
         echo -e "[deploy.sh] Publishing snapshots...\n"
         ./gradlew publish --parallel -Psnapshot
@@ -17,11 +17,11 @@ if [ "$TRAVIS_REPO_SLUG" == "$SLUG" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] &
     fi
 
     if [ "$TRAVIS_JDK_VERSION" == "$JDOC_JDK" ]; then
-        # Upload JavaDoc to GH-Pages.
-        echo -e "[deploy.sh] Publishing documentation...\n"
-        mkdir out
-
         if [ "$TRAVIS_TAG" == '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$' ]; then
+            # Upload JavaDoc to GH-Pages.
+            echo -e "[deploy.sh] Publishing documentation...\n"
+            mkdir out
+
             ./gradlew javadoc --parallel -Prelease
             cd out
             git init
@@ -32,7 +32,16 @@ if [ "$TRAVIS_REPO_SLUG" == "$SLUG" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] &
             cp -r ../build/docs/javadoc/* ./docs/${TRAVIS_TAG}
             sed -i -e "s/<!--INSERT_RELEASE-->/<!--INSERT_RELEASE-->\n            <li><a href=\"./docs/${TRAVIS_TAG}/index.html\">${TRAVIS_TAG}<\/a><br><\/li>/g" index.html
             COMMIT_MSG="feat(ci): $TRAVIS_TAG release documentation"
-        else
+
+            git add .
+            git commit -m "$COMMIT_MSG"
+            git push -q "https://${GH_TOKEN}@github.com/$SLUG" master:gh-pages
+            echo -e "[deploy.sh] Published documentation.\n"
+        elif [ "$TRAVIS_BRANCH" == "$BRANCH" ]; then
+            # Upload JavaDoc to GH-Pages.
+            echo -e "[deploy.sh] Publishing documentation...\n"
+            mkdir out
+
             ./gradlew javadoc --parallel -Psnapshot
             cd out
             git init
@@ -43,11 +52,11 @@ if [ "$TRAVIS_REPO_SLUG" == "$SLUG" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] &
             mkdir -p ./docs/snapshot/
             cp -r ../build/docs/javadoc/* ./docs/snapshot/
             COMMIT_MSG="feat(ci): snapshot documentation for build $TRAVIS_BUILD_NUMBER ($TRAVIS_COMMIT)"
-        fi
 
-        git add .
-        git commit -m "$COMMIT_MSG"
-        git push -q "https://${GH_TOKEN}@github.com/$SLUG" master:gh-pages
-        echo -e "[deploy.sh] Published documentation.\n"
+            git add .
+            git commit -m "$COMMIT_MSG"
+            git push -q "https://${GH_TOKEN}@github.com/$SLUG" master:gh-pages
+            echo -e "[deploy.sh] Published documentation.\n"
+        fi
     fi
 fi
