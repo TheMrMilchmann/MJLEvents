@@ -2,7 +2,7 @@
 
 SLUG="TheMrMilchmann/MJLEvents"
 JDK="oraclejdk8"
-JDOC_JDK="openjdk11"
+JDOC_JDK="openjdk12"
 BRANCH="master"
 
 set -e

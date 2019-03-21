@@ -17,6 +17,7 @@ env:
 jdk:
   - oraclejdk8
   - openjdk11
+  - openjdk12
 
 script: ./.dev/ci/deploy.sh
 
