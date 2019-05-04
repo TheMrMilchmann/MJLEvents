@@ -144,7 +144,7 @@ publishing {
 
             pom {
                 name.set(project.name)
-                description.set("A minimal Java library which provides an efficient and modular Event-System ")
+                description.set("A minimal Java library which provides an efficient and modular Event-System.")
                 packaging = "jar"
                 url.set("https://github.com/TheMrMilchmann/MJLEvents")
 
