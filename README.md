@@ -4,14 +4,12 @@
 [![Build Status](https://img.shields.io/travis/TheMrMilchmann/MJLEvents/master.svg?style=flat-square)](https://travis-ci.org/TheMrMilchmann/MJLEvents)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=maven%20central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.mjl/mjl-events)
 
-A **m**inmal **J**ava **l**ibrary which provides an efficient and modular Event-System (for Java 8 and later*).
+A **m**inmal **J**ava **l**ibrary which provides an efficient and modular Event-System (for Java 8 and later).
 
 The API of this library has been heavily influenced by [guava](https://github.com/google/guava) and other
-implementations.
+implementations. It was designed to be fully compatible with Java 9 and the JPMS.
 
 [JavaDoc for MJL Events.](https://themrmilchmann.github.io/MJLEvents/)
-
-(*) Versions older than `1.1.2` only run on Java 9 and above.
 
 
 ## Getting Started
@@ -27,7 +25,7 @@ public class Sample {
         bus.register(Sample.class, MethodHandles.lookup());
         
         // Posting an event
-        Event event = ...;
+        Event event = new SimpleEvent();
         bus.post(event);
     }
     
@@ -36,23 +34,24 @@ public class Sample {
         // Handle the event
     } 
     
+    public static class SimpleEvent implements Event {}
+
 }
 ```
 
 
 ## Installing
 
-Running the build requires JDK 8 or later. Additionally, a local copy of JDK 9 is required. The buildscript is trying to
-discover this copy by inspecting the following environment variables: `JDK9_HOME`, `JAVA9_HOME`, `JDK_19`, `JDK_9`.
+Building MJLEvents requires JDK 8 or later. Additionally, if the JDK used to invoke Gradle is older than JDK 9, a copy
+of JDK 9 or later (that supports `--release 9`) must be available under one of the following environment variables:
+`JDK9_HOME`, `JAVA9_HOME`, `JDK_19`, `JDK_9`.
 
-Starting the actual build is simply a matter of invoking the respective Gradle tasks. For example: In order to run a
-full build of the project, call
+Starting the actual build is simply a matter of invoking Gradle. For example: In order to run a full build of the
+project (including tests), call
 
     ./gradlew build
 
-Additionally, in order to reproduce snapshot and release builds it is required to supply the build with a an additional
-parameter instead. This should generally be done on a per-build basis by adding `-Psnapshot` or `-Prelease` to the
-command.
+To reproduce snapshot or release builds, passing the `-Psnapshot` or `-Prelease` parameter respectively is required.
 
 
 ## License
