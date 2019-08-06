@@ -52,6 +52,7 @@ project (including tests), call
     ./gradlew build
 
 To reproduce snapshot or release builds, passing the `-Psnapshot` or `-Prelease` parameter respectively is required.
+When the `-Prelease` option is used, binaries will be signed, thus the `signing` plugin needs to be configured.
 
 
 ## License
