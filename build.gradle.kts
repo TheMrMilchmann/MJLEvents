@@ -45,11 +45,9 @@ java {
 
 tasks {
     compileJava {
-        // JDK 8 does not support the --release option
+        /* JDK 8 does not support the --release option */
         if (Jvm.current().javaVersion!! > JavaVersion.VERSION_1_8) {
             // Workaround for https://github.com/gradle/gradle/issues/2510
-            sourceCompatibility = null
-            targetCompatibility = null
             options.compilerArgs.addAll(listOf("--release", "8"))
         }
     }
@@ -63,9 +61,10 @@ tasks {
         classpath = files()
         destinationDir = File(buildDir, "classes/java-jdk9/main")
 
+        sourceCompatibility = "9"
+        targetCompatibility = "9"
+
         // Workaround for https://github.com/gradle/gradle/issues/2510
-        sourceCompatibility = null
-        targetCompatibility = null
         options.compilerArgs.addAll(listOf("--release", "9"))
 
         afterEvaluate {
