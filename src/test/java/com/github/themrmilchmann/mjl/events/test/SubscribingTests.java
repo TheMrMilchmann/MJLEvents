@@ -15,7 +15,6 @@
  */
 package com.github.themrmilchmann.mjl.events.test;
 
-import com.github.themrmilchmann.mjl.events.Event;
 import com.github.themrmilchmann.mjl.events.EventBus;
 import com.github.themrmilchmann.mjl.events.EventSubscriber;
 import org.testng.annotations.Test;
@@ -46,7 +45,7 @@ public final class SubscribingTests {
 
     @Test
     public void testPublicInstanceSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PublicSubscriber.class)
             .build();
         bus.register(this, MethodHandles.lookup());
@@ -58,7 +57,7 @@ public final class SubscribingTests {
 
     @Test
     public void testPublicStaticSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PublicSubscriber.class)
             .build();
         bus.register(SubscribingTests.class, MethodHandles.lookup());
@@ -70,7 +69,7 @@ public final class SubscribingTests {
 
     @Test
     public void testPublicAnonymousSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PublicSubscriber.class)
             .build();
 
@@ -106,7 +105,7 @@ public final class SubscribingTests {
 
     @Test
     public void testProtectedInstanceSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(ProtectedSubscriber.class)
             .build();
         bus.register(this, MethodHandles.lookup());
@@ -118,7 +117,7 @@ public final class SubscribingTests {
 
     @Test
     public void testProtectedStaticSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(ProtectedSubscriber.class)
             .build();
         bus.register(SubscribingTests.class, MethodHandles.lookup());
@@ -130,7 +129,7 @@ public final class SubscribingTests {
 
     @Test
     public void testProtectedAnonymousSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(ProtectedSubscriber.class)
             .build();
 
@@ -168,7 +167,7 @@ public final class SubscribingTests {
 
     @Test
     public void testPrivateInstanceSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PrivateSubscriber.class)
             .build();
         bus.register(this, MethodHandles.lookup());
@@ -180,7 +179,7 @@ public final class SubscribingTests {
 
     @Test
     public void testPrivateStaticSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PrivateSubscriber.class)
             .build();
         bus.register(SubscribingTests.class, MethodHandles.lookup());
@@ -192,7 +191,7 @@ public final class SubscribingTests {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testPrivateAnonymousSubscriber() {
-        EventBus<Event> bus = EventBus.builder()
+        EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PrivateSubscriber.class)
             .build();
 
@@ -213,13 +212,13 @@ public final class SubscribingTests {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testIllegalParameterCountSubscriber() {
-        EventBus<Event> bus = EventBus.builder().build();
+        EventBus<Object> bus = EventBus.builder().build();
 
         bus.register(new Object() {
 
             @SuppressWarnings("unused")
             @EventSubscriber
-            public void anonymousSubscriber(TestEvent.TestCompletableFutureEvent event, Event event2) {
+            public void anonymousSubscriber(TestEvent.TestCompletableFutureEvent event, Object event2) {
                 event.getFuture().complete(null);
             }
 
@@ -228,15 +227,15 @@ public final class SubscribingTests {
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
-
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testIllegalParameterTypeSubscriber() {
-        EventBus<Event> bus = EventBus.builder().build();
+        EventBus<Object> bus = EventBus.builder().build();
 
         bus.register(new Object() {
 
+            @SuppressWarnings("unused")
             @EventSubscriber
             public void anonymousSubscriber(Object event) {
                 ((TestEvent.TestCompletableFutureEvent) event).getFuture().complete(null);

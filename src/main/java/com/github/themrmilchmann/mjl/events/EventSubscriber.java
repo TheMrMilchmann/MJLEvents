@@ -23,6 +23,9 @@ import java.lang.annotation.Target;
 /**
  * Default marker for {@link EventBus} subscribers.
  *
+ * @see EventBus.Builder#setSubscriberMarker(Class)
+ * @see EventBus#getSubscriberMarker()
+ *
  * @since   1.0.0
  *
  * @author  Leon Linhart

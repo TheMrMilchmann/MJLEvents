@@ -15,12 +15,10 @@
  */
 package com.github.themrmilchmann.mjl.events.test;
 
-import com.github.themrmilchmann.mjl.events.Event;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
-class TestEvent implements Event {
+class TestEvent {
 
     static class TestCompletableFutureEvent extends TestEvent {
 

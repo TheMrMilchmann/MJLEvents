@@ -45,8 +45,8 @@ import javax.annotation.Nullable;
  *
  * <h2>Posting events</h2>
  *
- * <p>To post an event, simply pass the event object to the {@link #post(Event)} method. The bus will dispatch the event
- * to all registered subscribers whose accepted type {@link Class#isAssignableFrom(Class) is assignable from} the
+ * <p>To post an event, simply pass the event object to the {@link #post(Object)} method. The bus will dispatch the
+ * event to all registered subscribers whose accepted type {@link Class#isAssignableFrom(Class) is assignable from} the
  * event's type.</p>
  *
  *
@@ -70,7 +70,7 @@ import javax.annotation.Nullable;
  * <h2>Thread-safety</h2>
  *
  * <p>All methods in this class are thread-safe by default. (Depending on the {@link EventDispatcher dispatcher} and
- * {@link Executor executor} implementations in use, the {@linkplain #post(Event) post} method might be unsafe. In this
+ * {@link Executor executor} implementations in use, the {@linkplain #post(Object) post} method might be unsafe. In this
  * case, it should be specified in the respective implementation's documentation explicitly.)</p>
  *
  *
@@ -87,7 +87,7 @@ import javax.annotation.Nullable;
  *
  * @author  Leon Linhart
  */
-public final class EventBus<E extends Event> {
+public final class EventBus<E> {
 
     /**
      * Returns a builder for an {@code EventBus}.
@@ -96,8 +96,8 @@ public final class EventBus<E extends Event> {
      *
      * @since   1.2.0
      */
-    public static Builder<Event> builder() {
-        return new Builder<>(Event.class);
+    public static Builder<Object> builder() {
+        return new Builder<>(Object.class);
     }
 
     /**
@@ -110,7 +110,7 @@ public final class EventBus<E extends Event> {
      *
      * @since   2.0.0
      */
-    public static <E extends Event> Builder<E> builder(Class<E> cls) {
+    public static <E> Builder<E> builder(Class<E> cls) {
         return new Builder<>(cls);
     }
 
@@ -381,7 +381,7 @@ public final class EventBus<E extends Event> {
      *
      * @since   1.0.0
      */
-    public static final class Subscriber<E extends Event> {
+    public static final class Subscriber<E> {
 
         private final EventBus bus;
         private final Object origin;
@@ -396,7 +396,7 @@ public final class EventBus<E extends Event> {
         }
 
         /**
-         * Dispatches the given {@link Event} to the wrapped subscriber.
+         * Dispatches the given event to the wrapped subscriber.
          *
          * <p>The blocking behaviour of this method depends on the executor implementation of the {@link EventBus} that
          * the subscriber is registered to.</p>
@@ -499,7 +499,7 @@ public final class EventBus<E extends Event> {
      *
      * @since   1.0.0
      */
-    public static final class Builder<E extends Event> {
+    public static final class Builder<E> {
 
         private final Class<E> type;
 

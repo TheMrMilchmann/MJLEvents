@@ -24,7 +24,7 @@ package com.github.themrmilchmann.mjl.events;
  *
  * @author  Leon Linhart
  */
-public interface DispatchErrorHandler {
+public interface DispatchErrorHandler<E> {
 
     /**
      * Handle an error that occurred while dispatching an event to a subscriber.
@@ -35,6 +35,6 @@ public interface DispatchErrorHandler {
      *
      * @since   1.1.0
      */
-    void onDispatchError(Event event, EventBus.Subscriber subscriber, Throwable error);
+    void onDispatchError(E event, EventBus.Subscriber<E> subscriber, Throwable error);
 
 }

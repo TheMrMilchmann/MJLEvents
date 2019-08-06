@@ -19,6 +19,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 
 /**
  * An object that takes care of submitting events to subscribers.
@@ -27,7 +28,7 @@ import java.util.Queue;
  *
  * @author  Leon Linhart
  */
-public abstract class EventDispatcher {
+public abstract class EventDispatcher<E> {
 
     /**
      * Returns a dispatcher that dispatches events directly.
@@ -39,7 +40,7 @@ public abstract class EventDispatcher {
      *
      * @since   1.0.0
      */
-    public static EventDispatcher directDispatcher() {
+    public static EventDispatcher<?> directDispatcher() {
         return DirectDispatcher.INSTANCE;
     }
 
@@ -52,29 +53,29 @@ public abstract class EventDispatcher {
      *
      * @since   1.0.0
      */
-    public static EventDispatcher perThreadDispatchQueue() {
-        return new PerThreadDispatchQueueDispatcher();
+    public static <E> EventDispatcher<E> perThreadDispatchQueue() {
+        return new PerThreadDispatchQueueDispatcher<>();
     }
 
     /**
      * Dispatches the event to the subscribers.
      *
      * <p>Implementations are responsible for
-     * {@link com.github.themrmilchmann.mjl.events.EventBus.Subscriber#dispatch(Event) dispatching} events.</p>
+     * {@link com.github.themrmilchmann.mjl.events.EventBus.Subscriber#dispatch(Object) dispatching} events.</p>
      *
      * @param event         the event to dispatch
      * @param subscribers   the subscribers to dispatch the event to
      *
      * @since   1.0.0
      */
-    protected abstract void dispatch(Event event, Collection<EventBus.Subscriber> subscribers);
+    protected abstract void dispatch(E event, Set<EventBus.Subscriber<E>> subscribers);
 
-    private static class DirectDispatcher extends EventDispatcher {
+    private static class DirectDispatcher<E> extends EventDispatcher<E> {
 
-        private static final EventDispatcher INSTANCE = new DirectDispatcher();
+        private static final EventDispatcher<?> INSTANCE = new DirectDispatcher<>();
 
         @Override
-        protected void dispatch(Event event, Collection<EventBus.Subscriber> subscribers) {
+        protected void dispatch(E event, Set<EventBus.Subscriber<E>> subscribers) {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
             subscribers.forEach(subscriber -> subscriber.dispatch(event));
@@ -82,27 +83,27 @@ public abstract class EventDispatcher {
 
     }
 
-    private static class PerThreadDispatchQueueDispatcher extends EventDispatcher {
+    private static class PerThreadDispatchQueueDispatcher<E> extends EventDispatcher<E> {
 
-        private final ThreadLocal<Queue<QueuedEvent>> threadLocalQueue = ThreadLocal.withInitial(ArrayDeque::new);
+        private final ThreadLocal<Queue<QueuedEvent<E>>> threadLocalQueue = ThreadLocal.withInitial(ArrayDeque::new);
         private final ThreadLocal<Boolean> isThreadDispatching = ThreadLocal.withInitial(() -> false);
 
         @Override
-        protected void dispatch(Event event, Collection<EventBus.Subscriber> subscribers) {
+        protected void dispatch(E event, Set<EventBus.Subscriber<E>> subscribers) {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
 
-            Queue<QueuedEvent> eventQueue = this.threadLocalQueue.get();
-            eventQueue.offer(new QueuedEvent(event, subscribers));
+            Queue<QueuedEvent<E>> eventQueue = this.threadLocalQueue.get();
+            eventQueue.offer(new QueuedEvent<>(event, subscribers));
 
             if (!this.isThreadDispatching.get()) {
                 this.isThreadDispatching.set(true);
 
                 try {
-                    QueuedEvent queuedEvent;
+                    QueuedEvent<E> queuedEvent;
 
                     while ((queuedEvent = eventQueue.poll()) != null) {
-                        Event e = queuedEvent.event;
+                        E e = queuedEvent.event;
                         queuedEvent.subscribers.forEach(subscriber -> subscriber.dispatch(e));
                     }
                 } finally {
@@ -112,12 +113,12 @@ public abstract class EventDispatcher {
             }
         }
 
-        private static class QueuedEvent {
+        private static class QueuedEvent<E> {
 
-            private final Event event;
-            private final Collection<EventBus.Subscriber> subscribers;
+            private final E event;
+            private final Collection<EventBus.Subscriber<E>> subscribers;
 
-            private QueuedEvent(Event event, Collection<EventBus.Subscriber> subscribers) {
+            private QueuedEvent(E event, Collection<EventBus.Subscriber<E>> subscribers) {
                 this.event = event;
                 this.subscribers = subscribers;
             }

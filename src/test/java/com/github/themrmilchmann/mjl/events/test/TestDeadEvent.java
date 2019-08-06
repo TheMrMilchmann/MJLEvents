@@ -15,11 +15,9 @@
  */
 package com.github.themrmilchmann.mjl.events.test;
 
-import com.github.themrmilchmann.mjl.events.Event;
-
 import java.util.concurrent.CompletableFuture;
 
-class TestDeadEvent implements Event {
+class TestDeadEvent {
 
     private final CompletableFuture<?> future;
 
