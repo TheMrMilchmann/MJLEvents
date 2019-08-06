@@ -42,8 +42,9 @@ public class Sample {
 
 ## Installing
 
-Building MJLEvents requires JDK 8 or later. Additionally, if the JDK used to invoke Gradle is older than JDK 9, a copy
-of JDK 9 or later (that supports `--release 9`) must be available under one of the following environment variables:
+To built MJLEvents the JDK used to invoke Gradle (usually the JDK in `JAVA_HOME`) must either be a version of JDK 8, or
+support targeting Java 8 (via `--release 8` option). If the former is the case another JDK supporting targeting Java 9
+(via `--release 9` option) must be available with one of the following environment variables pointing at it:
 `JDK9_HOME`, `JAVA9_HOME`, `JDK_19`, `JDK_9`.
 
 Starting the actual build is simply a matter of invoking Gradle. For example: In order to run a full build of the

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import com.github.themrmilchmann.build.*
+import org.gradle.internal.jvm.*
 
 plugins {
     java
@@ -31,20 +32,29 @@ version = when (deployment.type) {
     else -> nextVersion
 }
 
+val currentJVMAtLeast9 = Jvm.current().javaVersion!! >= JavaVersion.VERSION_1_9
+
 java {
+    /*
+     * Source- and target-compatibility are set here so that an IDE can easily pick them up. They are, however,
+     * overwritten by the compileJava task (as part of a workaround).
+     */
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks {
-    val compileJava9 = create<JavaCompile>("compileJava9") {
-        val jdk9Props = arrayOf(
-            "JDK9_HOME",
-            "JAVA9_HOME",
-            "JDK_19",
-            "JDK_9"
-        )
+    compileJava {
+        // JDK 8 does not support the --release option
+        if (Jvm.current().javaVersion!! > JavaVersion.VERSION_1_8) {
+            // Workaround for https://github.com/gradle/gradle/issues/2510
+            sourceCompatibility = null
+            targetCompatibility = null
+            options.compilerArgs.addAll(listOf("--release", "8"))
+        }
+    }
 
+    val compileJava9 = create<JavaCompile>("compileJava9") {
         val ftSource = fileTree("src/main/java-jdk9")
         ftSource.include("**/*.java")
         options.sourcepath = files("src/main/java-jdk9")
@@ -53,8 +63,10 @@ tasks {
         classpath = files()
         destinationDir = File(buildDir, "classes/java-jdk9/main")
 
-        sourceCompatibility = "9"
-        targetCompatibility = "9"
+        // Workaround for https://github.com/gradle/gradle/issues/2510
+        sourceCompatibility = null
+        targetCompatibility = null
+        options.compilerArgs.addAll(listOf("--release", "9"))
 
         afterEvaluate {
             // module-path hack
@@ -62,18 +74,30 @@ tasks {
             options.compilerArgs.add(compileJava.get().classpath.asPath)
         }
 
-        val jdk9Home = jdk9Props.mapNotNull { System.getenv(it) }
-            .map { File(it) }
-            .firstOrNull(File::exists) ?: throw Error("Could not find valid JDK9 home")
-        options.forkOptions.javaHome = jdk9Home
-        options.isFork = true
+        /*
+         * If the JVM used to invoke Gradle is JDK 9 or later, there is no reason to require a separate JDK 9 instance.
+         */
+        if (!currentJVMAtLeast9) {
+            val jdk9Props = arrayOf(
+                "JDK9_HOME",
+                "JAVA9_HOME",
+                "JDK_19",
+                "JDK_9"
+            )
+
+            val jdk9Home = jdk9Props.mapNotNull { System.getenv(it) }
+                .map { File(it) }
+                .firstOrNull(File::exists) ?: throw Error("Could not find valid JDK9 home")
+            options.forkOptions.javaHome = jdk9Home
+            options.isFork = true
+        }
     }
 
-    "test"(Test::class) {
+    test {
         useTestNG()
     }
 
-    "jar"(Jar::class) {
+    jar {
         dependsOn(compileJava9)
 
         archiveBaseName.set(artifactName)
@@ -112,8 +136,6 @@ tasks {
         }
     }
 
-    val javadoc = "javadoc"(Javadoc::class)
-
     create<Jar>("javadocJar") {
         dependsOn(javadoc)
 
@@ -134,7 +156,7 @@ publishing {
             }
         }
     }
-    (publications) {
+    publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
             artifact(tasks["sourcesJar"])
