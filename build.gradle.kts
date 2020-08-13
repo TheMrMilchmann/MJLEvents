@@ -19,7 +19,7 @@ import org.gradle.internal.jvm.*
 
 plugins {
     java
-    id("me.champeau.gradle.jmh") version "0.4.7"
+    id("me.champeau.gradle.jmh") version "0.5.0"
     signing
     `maven-publish`
 }
