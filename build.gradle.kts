@@ -18,7 +18,7 @@ import com.github.themrmilchmann.build.BuildType
 import org.gradle.internal.jvm.*
 
 plugins {
-    java
+    `java-library`
     id("me.champeau.gradle.jmh") version "0.5.0"
     signing
     `maven-publish`
