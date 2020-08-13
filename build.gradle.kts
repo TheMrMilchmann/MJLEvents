@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import com.github.themrmilchmann.build.*
+import com.github.themrmilchmann.build.BuildType
 import org.gradle.internal.jvm.*
 
 plugins {
@@ -28,84 +29,119 @@ val nextVersion = "3.0.0"
 
 group = "com.github.themrmilchmann.mjl"
 version = when (deployment.type) {
-    com.github.themrmilchmann.build.BuildType.SNAPSHOT -> "$nextVersion-SNAPSHOT"
+    BuildType.SNAPSHOT -> "$nextVersion-SNAPSHOT"
     else -> nextVersion
 }
 
-val currentJVMAtLeast9 = Jvm.current().javaVersion!! >= JavaVersion.VERSION_1_9
-
 java {
-    /*
-     * Source- and target-compatibility are set here so that an IDE can easily pick them up. They are, however,
-     * overwritten by the compileJava task (as part of a workaround).
-     */
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+val currentJVM = Jvm.current() ?: error("Failed to detect current JVM.")
+val currentJVMVersion = currentJVM.javaVersion ?: error("Failed to detect version of the current JVM.")
+
+val String.toJDKHome get() = (findProperty(this) ?: System.getenv(this))?.let {
+    File(it.toString()).also(Jvm::forHome)
+} ?: error("Failed to locate JDK: $this")
+
+val jdk8Home by lazy {
+    if (currentJVMVersion.isJava8 && currentJVM.javaHome !== null) {
+        currentJVM.javaHome!!
+    } else {
+        "JDK_8".toJDKHome
+    }
+}
+val jdk9Home by lazy {
+    if (currentJVMVersion.isJava9 && currentJVM.javaHome !== null) {
+        currentJVM.javaHome!!
+    } else {
+        "JDK_9".toJDKHome
+    }
+}
+val jdk14Home by lazy {
+    if (currentJVMVersion == JavaVersion.VERSION_14 && currentJVM.javaHome !== null) {
+        currentJVM.javaHome!!
+    } else {
+        "JDK_14".toJDKHome
+    }
+}
+
 tasks {
     compileJava {
-        /* JDK 8 does not support the --release option */
-        if (Jvm.current().javaVersion!! > JavaVersion.VERSION_1_8) {
-            // Workaround for https://github.com/gradle/gradle/issues/2510
+        /*
+         * The main target of this library is Java 8. Thus, if we want to compile it in production mode, either the
+         * current JVM needs to support compilation to Java 8 or it must be a JDK 8 installation.
+         * The former is achieved by passing the "--release 8" parameter to the compiler. [1]
+         * However, there is a bug in JDK 9 preventing usage of the "--release" flag from the JDK Tools API. [2] Thus
+         * Gradle cannot invoke the compiler using that API and instead needs to use the command line.
+         *
+         * [1] https://github.com/gradle/gradle/issues/2510
+         * [2] https://bugs.openjdk.java.net/browse/JDK-8139607
+         */
+        if (currentJVMVersion > JavaVersion.VERSION_1_8) {
             options.compilerArgs.addAll(listOf("--release", "8"))
+
+            if  (currentJVMVersion.isJava9) {
+                options.isFork = true
+                options.forkOptions.javaHome = jdk8Home
+            }
         }
     }
 
     val compileJava9 = create<JavaCompile>("compileJava9") {
-        val ftSource = fileTree("src/main/java-jdk9")
-        ftSource.include("**/*.java")
-        options.sourcepath = files("src/main/java-jdk9")
-        source = ftSource
+        /*
+         * To make the library a fully functional module for Java 9 and later, we make use of multi-release JARs. To be
+         * precise: The module descriptor (module-info.class) is placed in /META-INF/versions/9 to be available on
+         * Java 9 and later only.
+         *
+         * (Additional Java 9 specific functionality may also be used and is handled by this task.)
+         *
+         * Usually we want to pass the "--release 9" parameter to the compiler to specify the target version. [1]
+         * Keep in mind however, that there is a bug in JDK 9 preventing usage of the "--release" flag from the JDK
+         * Tools API. [2] Since we want to compile using JDK 9 there is no reason to pass the flag when we are running
+         * on JDK 9 though.
+         * Also there is a bug in javac that causes modular MRJARs to be recognized as automatic modules. This is a
+         * warning when javac is invoke via CLI, but seems to be an error when it is invoked via Tools API. Thus Gradle
+         * cannot invoke the compiler using that API and needs to use the command line. (This bug only surfaces with an
+         * according dependency.)
+         *
+         * [1] https://github.com/gradle/gradle/issues/2510
+         * [2] https://bugs.openjdk.java.net/browse/JDK-8139607
+         */
+        destinationDir = File(buildDir, "classes/java-jdk9/main")
+
+        val java9Source = fileTree("src/main/java-jdk9") {
+            include("**/*.java")
+        }
+
+        source = java9Source
+        options.sourcepath = files(sourceSets["main"].java.srcDirs) + files(java9Source.dir)
 
         classpath = files()
-        destinationDir = File(buildDir, "classes/java-jdk9/main")
 
         sourceCompatibility = "9"
         targetCompatibility = "9"
-
-        // Workaround for https://github.com/gradle/gradle/issues/2510
-        options.compilerArgs.addAll(listOf("--release", "9"))
+        if (!currentJVMVersion.isJava9) options.compilerArgs.addAll(listOf("--release", "9"))
 
         afterEvaluate {
-            // module-path hack
             options.compilerArgs.add("--module-path")
             options.compilerArgs.add(compileJava.get().classpath.asPath)
         }
 
-        /*
-         * If the JVM used to invoke Gradle is JDK 9 or later, there is no reason to require a separate JDK 9 instance.
-         */
-        if (!currentJVMAtLeast9) {
-            val jdk9Props = arrayOf(
-                "JDK9_HOME",
-                "JAVA9_HOME",
-                "JDK_19",
-                "JDK_9"
-            )
-
-            val jdk9Home = jdk9Props.mapNotNull { System.getenv(it) }
-                .map { File(it) }
-                .firstOrNull(File::exists) ?: throw Error("Could not find valid JDK9 home")
-            options.forkOptions.javaHome = jdk9Home
-            options.isFork = true
-        }
+        options.forkOptions.javaHome = jdk9Home
+        options.isFork = true
     }
 
-    test {
-        useTestNG()
+    classes {
+        dependsOn(compileJava9)
     }
 
     jar {
-        dependsOn(compileJava9)
-
         archiveBaseName.set(artifactName)
 
         into("META-INF/versions/9") {
-            from(compileJava9.outputs.files.filter(File::isDirectory)) {
-                exclude("**/Stub.class")
-            }
-
+            from(compileJava9.outputs.files.filter(File::isDirectory))
             includeEmptyDirs = false
         }
 
@@ -127,11 +163,22 @@ tasks {
         from(sourceSets["main"].allSource)
 
         into("META-INF/versions/9") {
-            from(compileJava9.inputs.files.filter(File::isDirectory)) {
-                exclude("**/Stub.java")
-            }
-
+            from(compileJava9.inputs.files.filter(File::isDirectory))
             includeEmptyDirs = false
+        }
+    }
+
+    javadoc {
+        doFirst {
+            executable = Jvm.forHome(jdk14Home).javadocExecutable.absolutePath
+        }
+
+        with (options as StandardJavadocDocletOptions) {
+            tags = listOf(
+                "apiNote:a:API Note:",
+                "implSpec:a:Implementation Requirements:",
+                "implNote:a:Implementation Note:"
+            )
         }
     }
 
@@ -197,11 +244,8 @@ publishing {
 }
 
 signing {
+    isRequired = (deployment.type === BuildType.RELEASE)
     sign(publishing.publications)
-}
-
-val signMavenJavaPublication by tasks.getting {
-    onlyIf { deployment.type === com.github.themrmilchmann.build.BuildType.RELEASE }
 }
 
 repositories {
@@ -211,5 +255,5 @@ repositories {
 dependencies {
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
-    testCompile("org.testng:testng:6.14.3")
+    testImplementation("org.testng:testng:6.14.3")
 }
