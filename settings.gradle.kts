@@ -14,5 +14,3 @@
  * limitations under the License.
  */
 rootProject.name = "MJL Events"
-
-enableFeaturePreview("GRADLE_METADATA")
