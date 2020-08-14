@@ -16,7 +16,6 @@
 package com.github.themrmilchmann.mjl.events.test;
 
 import com.github.themrmilchmann.mjl.events.*;
-import com.github.themrmilchmann.mjl.events.util.concurrent.MJLExecutors;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
@@ -32,7 +31,7 @@ public final class PostingTests {
     public void testSingleSubscriberPost() {
         EventBus<Object> bus = EventBus.builder()
             .setDispatcher(EventDispatcher.directDispatcher())
-            .setExecutor(MJLExecutors.directExecutor())
+            .setExecutor(DefaultExecutors.directExecutor())
             .build();
         bus.register(this, MethodHandles.lookup());
 
@@ -44,7 +43,7 @@ public final class PostingTests {
     public void testAssignableResolutionPost() throws InterruptedException {
         EventBus<Object> bus = EventBus.builder()
             .setDispatcher(EventDispatcher.directDispatcher())
-            .setExecutor(MJLExecutors.directExecutor())
+            .setExecutor(DefaultExecutors.directExecutor())
             .build();
         bus.register(this, MethodHandles.lookup());
 
@@ -59,7 +58,7 @@ public final class PostingTests {
         EventBus<TestDeadEvent> bus = EventBus.builder(TestDeadEvent.class)
             .setDeadEventHandler(it -> it.getFuture().complete(null))
             .setDispatcher(EventDispatcher.directDispatcher())
-            .setExecutor(MJLExecutors.directExecutor())
+            .setExecutor(DefaultExecutors.directExecutor())
             .build();
         bus.register(this, MethodHandles.lookup());
 

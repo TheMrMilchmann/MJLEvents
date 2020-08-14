@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Leon Linhart
+ * Copyright 2018-2020 Leon Linhart
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.themrmilchmann.mjl.events.util.concurrent;
+package com.github.themrmilchmann.mjl.events;
 
 import java.util.concurrent.Executor;
 
 /**
- * A collection of executors that are commonly used with an EventBus.
+ * A collection of useful executors for use in an {@link EventBus}.
  *
- * @since   1.0.0
+ * @since   3.0.0
  *
  * @author  Leon Linhart
  */
-public final class MJLExecutors {
-
-    private MJLExecutors() {}
+public final class DefaultExecutors {
 
     /**
      * Returns an {@link Executor} that runs each task directly in the thread that invokes

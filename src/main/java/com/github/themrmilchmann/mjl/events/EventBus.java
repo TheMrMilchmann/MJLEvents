@@ -15,8 +15,6 @@
  */
 package com.github.themrmilchmann.mjl.events;
 
-import com.github.themrmilchmann.mjl.events.util.concurrent.MJLExecutors;
-
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -517,7 +515,7 @@ public final class EventBus<E> {
         private Builder(Class<E> type) {
             this.type = type;
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
-            this.executor = MJLExecutors.directExecutor();
+            this.executor = DefaultExecutors.directExecutor();
             this.subscriberMarker = EventSubscriber.class;
             this.isSelfCleaning = false;
         }

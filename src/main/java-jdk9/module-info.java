@@ -25,6 +25,5 @@ module com.github.themrmilchmann.mjl.events {
     requires static jsr305;
 
     exports com.github.themrmilchmann.mjl.events;
-    exports com.github.themrmilchmann.mjl.events.util.concurrent;
 
 }
