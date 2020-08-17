@@ -40,20 +40,44 @@ public class Sample {
 ```
 
 
-## Installing
+## Building from source
 
-To built MJLEvents the JDK used to invoke Gradle (usually the JDK in `JAVA_HOME`) must either be a version of JDK 8, or
-support targeting Java 8 (via `--release 8` option). If the former is the case another JDK supporting targeting Java 9
-(via `--release 9` option) must be available with one of the following environment variables pointing at it:
-`JDK9_HOME`, `JAVA9_HOME`, `JDK_19`, `JDK_9`.
+### Setup
 
-Starting the actual build is simply a matter of invoking Gradle. For example: In order to run a full build of the
-project (including tests), call
+A complete build expects multiple JDK installations set up as follows:
+1. JDK 1.8 (used to compile the basic library)
+2. JDK   9 (used to compile the module descriptor)
+3. JDK  14 (used to generate the JavaDoc)
 
-    ./gradlew build
+These JDKs must be made visible to the build process by setting up
+environment variables (or [Gradle properties](https://docs.gradle.org/current/userguide/build_environment.html#sec:gradle_configuration_properties))
+for each JDK version as follows:
 
-To reproduce snapshot or release builds, passing the `-Psnapshot` or `-Prelease` parameter respectively is required.
-When the `-Prelease` option is used, binaries will be signed, thus the `signing` plugin needs to be configured.
+```
+JAVA_HOME="path to JDK 1.8"
+JDK_8="path to JDK 1.8"
+JDK_9="path to JDK 9"
+JDK_14="path to JDK 14"
+```
+
+### Building
+
+Once the setup is complete, invoke the respective Gradle tasks using the
+following command on Unix/macOS:
+
+    ./gradlew <tasks>
+
+or the following command on Windows:
+
+    gradlew <tasks>
+
+Important Gradle tasks to remember are:
+- `clean`                   - clean build results
+- `build`                   - assemble and test the Java library
+- `publishToMavenLocal`     - build and install all public artifacts to the
+                              local maven repository
+
+Additionally `tasks` may be used to print a list of all available tasks.
 
 
 ## License
