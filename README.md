@@ -9,8 +9,6 @@ A **m**inmal **J**ava **l**ibrary which provides an efficient and modular Event-
 The API of this library has been heavily influenced by [guava](https://github.com/google/guava) and other
 implementations. It was designed to be fully compatible with Java 9 and the JPMS.
 
-[JavaDoc for MJL Events.](https://themrmilchmann.github.io/MJLEvents/)
-
 
 ## Getting Started
 
