@@ -20,66 +20,53 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.function.Function;
+import java.util.function.IntPredicate;
 import javax.annotation.Nullable;
+import com.github.themrmilchmann.mjl.events.internal.ConcurrentWeakHashMap;
 
 /**
- * An EventBus for publish-subscribe-style communication between components.
+ * An {@code EventBus} for publish-subscribe-style communication between components.
  *
- * <h2>Posting events</h2>
+ * <p>To receive events, a handler, referred to as subscriber, which accepts a single parameter of the type of the
+ * desired events must be {@link #subscribe(Class, EventHandler) subscribed} to the bus. Instead of explicitly
+ * subscribing a handler to an event, it is also possible to automatically create handlers for an object or class using
+ * {@link #subscribe(Class, MethodHandles.Lookup) annotation-based subscriber discovery}. The handler will then be
+ * applicable to receive any event whose type {@link Class#isAssignableFrom(Class) is assignable to} its parameter type.
+ * </p>
  *
- * <p>To post an event, simply pass the event object to the {@link #post(Object)} method. The bus will dispatch the
- * event to all registered subscribers whose accepted type {@link Class#isAssignableFrom(Class) is assignable from} the
- * event's type.</p>
+ * <p>Objects may be {@link #post(Object) posted} to the bus. (Once an object has been posted, it is loosely referred to
+ * as <em>event</em>.) The bus' {@link EventDispatcher dispatcher} then takes care of delivering the object to all
+ * applicable subscribers. If there are no applicable subscribers for an event, it is considered to be <em>dead</em>.
+ * Dead events are sometimes an indication of a misconfiguration and can be caught by setting up a
+ * {@link EventBus.Builder#setDeadEventHandler(Consumer) special handler}.</p>
  *
+ * <p>All methods in this class are thread-safe by default. However, dispatcher and {@link Executor executor}
+ * implementations are not generally required to be thread-safe and thus, depending on the configuration, {@link #post(Object)
+ * posting} events might not be either. (Dispatchers and executors that are not thread-safe should contain appropriate
+ * notes in their documentation.)</p>
  *
- * <h2>Subscribers</h2>
- *
- * <p>To receive events, a method, known as the <i>subscriber</i>, which accepts a single argument of the type of the
- * desired event must be marked with the bus' subscriber marker annotation and its enclosing class must be registered to
- * the bus.</p>
- *
- *
- * <h2>Dead Events</h2>
- *
- * <p>If a posted event cannot be received by any subscriber, it is considered "dead". Dead events are wrapped in an
- * instance of {@link DeadEvent} and passed to the bus' dead-event handler. Listening to these events can be useful for
- * debugging purposes.</p>
- *
- * <p>A {@code DeadEvent} is dispatched only to subscribers who explicitly expect it. (A subscriber method which expects
- * the common supertype {@code Event} will not receive dead events.</p>
- *
- *
- * <h2>Thread-safety</h2>
- *
- * <p>All methods in this class are thread-safe by default. (Depending on the {@link EventDispatcher dispatcher} and
- * {@link Executor executor} implementations in use, the {@linkplain #post(Object) post} method might be unsafe. In this
- * case, it should be specified in the respective implementation's documentation explicitly.)</p>
- *
- *
- * <h2>Memory management</h2>
- *
- * <p>By default, it is not guaranteed that a EventBus removes all references to unused objects when
- * {@link #unregister(Object)} is called. Those references may be manually removed by calling {@link #clear()}.</p>
- *
- * <p>Alternatively it is possible to overwrite this behavior by creating a <i>self-cleaning</i> bus (via
- * {@link Builder#setSelfCleaning(boolean)}). A bus created with this option will always remove all unused references as
- * soon as possible at the cost of computation speed for registering/unregistering operations.</p>
+ * <p>By default, a bus will automatically remove all references to unused objects when subscribers are
+ * {@link SubscriberHandle#unsubscribe() unsubscribed}. In environments where handlers frequently subscribe to and
+ * unsubscribe from a bus, this might lead to poor performance. Alternatively, {@link EventBus.Builder#setSelfCleaning(boolean)
+ * it is possible to disable automatic cleanup} and to manually {@link #cleanup()} the bus.</p>
  *
  * @since   1.0.0
  *
@@ -92,7 +79,7 @@ public final class EventBus<E> {
      *
      * @return  a builder instance
      *
-     * @since   1.2.0
+     * @since   3.0.0
      */
     public static Builder<Object> builder() {
         return new Builder<>(Object.class);
@@ -106,34 +93,49 @@ public final class EventBus<E> {
      *
      * @return  a builder instance
      *
-     * @since   2.0.0
+     * @since   3.0.0
      */
     public static <E> Builder<E> builder(Class<E> cls) {
         return new Builder<>(cls);
     }
 
-    private final ConcurrentMap<Class<? extends E>, Set<Subscriber>> subscribers = new ConcurrentHashMap<>();
+    /*
+     * A couple of notes about GC eligibility of the related objects here:
+     *
+     * As long as a SubscriberHandle is strongly referenced somewhere (and SubscriberHandle#unsubscribe) has not been
+     * called, the EventHandler (or Context for MethodHandles) is still strongly referenced. These, in turn, implicitly
+     * reference the "eventType" class (the one which serves as key to the subscribers map) via their signature.
+     * Therefore, keys and (thus) values of the "subscribers" map are not eligible for GC.
+     *
+     * Subscribers do not hold a strong reference to the actual handlers. Thus, if the SubscriberHandle becomes eligible
+     * for GC, EventHandlers are unsubscribed (unless there is another strong reference in consumer-code), but
+     * MethodHandle-based handlers are still valid (since their "eventType" classes are still referenced).
+     */
+    private final ConcurrentWeakHashMap<Class<? extends E>, CopyOnWriteArraySet<Subscriber<? extends E>>> subscribers = new ConcurrentWeakHashMap<>();
+    private final ConcurrentWeakHashMap<Class<? extends E>, Set<Class<? extends E>>> receivingTypes = new ConcurrentWeakHashMap<>();
 
     private final Class<E> type;
-    private final EventDispatcher dispatcher;
+    private final EventDispatcher<E> dispatcher;
 
     @Nullable
-    private final DispatchErrorHandler dispatchErrorHandler;
+    private final DispatchErrorHandler<E> dispatchErrorHandler;
     private final Executor executor;
     private final Class<? extends Annotation> subscriberMarker;
     private final boolean isSelfCleaning;
+    private final Function<Class<?>, Method[]> mapper;
 
     @Nullable
-    private final Consumer<DeadEvent> deadEventHandler;
+    private final Consumer<E> deadEventHandler;
 
     private EventBus(
         Class<E> type,
-        EventDispatcher dispatcher,
-        @Nullable DispatchErrorHandler dispatchErrorHandler,
+        EventDispatcher<E> dispatcher,
+        @Nullable DispatchErrorHandler<E> dispatchErrorHandler,
         Executor executor,
         Class<? extends Annotation> subscriberMarker,
         boolean isSelfCleaning,
-        @Nullable Consumer<DeadEvent> deadEventHandler
+        Function<Class<?>, Method[]> mapper,
+        @Nullable Consumer<E> deadEventHandler
     ) {
         this.type = type;
         this.dispatcher = dispatcher;
@@ -141,17 +143,30 @@ public final class EventBus<E> {
         this.executor = executor;
         this.subscriberMarker = subscriberMarker;
         this.isSelfCleaning = isSelfCleaning;
+        this.mapper = mapper;
         this.deadEventHandler = deadEventHandler;
     }
 
     /**
-     * The annotation type that is used to identify methods that are potential subscribers to events on this bus.
+     * Returns the base type for events for this bus.
+     *
+     * @return  the base types for events for this bus
+     *
+     * @since   3.0.0
+     */
+    public Class<?> getEventType() {
+        return this.type;
+    }
+
+    /**
+     * The annotation that is used to identify methods that are potential subscribers to events on this bus during
+     * {@link #subscribe(Class, MethodHandles.Lookup) annotation-based subscriber discovery}.
      *
      * @return  the annotation type that is used to identify methods that are potential subscribers to events on this
      *          bus
      *
-     * @see #register(Class, MethodHandles.Lookup)
-     * @see #register(Object, MethodHandles.Lookup)
+     * @see #subscribe(Class, MethodHandles.Lookup)
+     * @see #subscribe(Object, MethodHandles.Lookup)
      * @see Builder#setSubscriberMarker(Class)
      *
      * @since   1.0.0
@@ -161,159 +176,220 @@ public final class EventBus<E> {
     }
 
     /**
-     * Registers all static methods of the given class that are visible to the given lookup and
-     * {@link #getSubscriberMarker() marked} with this bus' marker.
+     * Subscribes the given handler to this bus for the given type of events.
      *
-     * <p>Searches the given object's class for any non-synthetic instance method that is marked with this bus'
-     * subscriber marker and performs several vanity checks on each of them and throws an
-     * {@link IllegalArgumentException} if any of them:</p>
+     * <p>The given {@code handler} is only weakly referenced from this bus. To prevent premature garbage collection, a
+     * strong reference must be held (for example by holding onto the returned handle).</p>
+     *
+     * @param <T>       the type of the event
+     * @param eventType the type of the event
+     * @param handler   the handler function for the event
+     *
+     * @return  a handle for the methods that have been subscribed to this, or {@code null}
+     *
+     * @throws NullPointerException     if any parameter is {@code null}
+     *
+     * @since   3.0.0
+     */
+    public <T extends E> SubscriberHandle subscribe(Class<T> eventType, EventHandler<T> handler) {
+        Objects.requireNonNull(eventType);
+        Objects.requireNonNull(handler);
+
+        Subscriber<T> subscriber = new Subscriber.SubscribedEventHandler<>(this, handler);
+        CopyOnWriteArraySet<Subscriber<? extends E>> subscribers = this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>());
+        subscribers.add(subscriber);
+
+        WeakReference<CopyOnWriteArraySet<Subscriber<? extends E>>> subscribersRef = new WeakReference<>(subscribers);
+        WeakReference<Subscriber<T>> subscriberRef = new WeakReference<>(subscriber);
+
+        Runnable unsubscribe = () -> {
+            CopyOnWriteArraySet<Subscriber<? extends E>> subs = subscribersRef.get();
+            if (subs == null) return;
+
+            Subscriber<T> sub = subscriberRef.get();
+            if (sub == null) return;
+
+            subs.remove(sub);
+            this.unsubscribe();
+        };
+
+        return new SubscriberHandle(unsubscribe, handler);
+    }
+
+    /**
+     * Dynamically discovers potential event-handling {@code static} methods in the given class using this bus'
+     * {@link #getSubscriberMarker() subscriber marker}, attempts to subscribe all of them to this bus and returns a
+     * {@link SubscriberHandle handle} for the subscribed methods, or {@code null} if no such methods were found.
+     *
+     * <p>This bus's {@link EventBus.Builder#setMethodMapper(Function) method mapper} is used to discover all methods
+     * from the given class. All {@code static} non-{@link Method#isBridge() bridge} methods that are annotated with
+     * this bus' {@link #getSubscriberMarker() marker} are considered to be candidates. If no such candidate exists,
+     * {@code null} is returned. Otherwise, multiple checks are performed for each candidate method and an exception is
+     * thrown if any of them:</p>
      * <ul>
-     *     <li>expects any number of parameters other than one, or {@link Event} is not assignable from
-     *     that parameter's type,</li>
-     *     <li>returns any other type than {@code void}, or</li>
-     *     <li>if the method is not visible to the given lookup.</li>
+     * <li>expects any number of parameters other than one, or this bus's {@link #getEventType() base type} is not
+     * {@link Class#isAssignableFrom(Class) assignable from} that parameter's type,</li>
+     * <li>returns any other type than {@code void}, or</li>
+     * <li>if the method is not visible to the given lookup.</li>
      * </ul>
      *
-     * <p>If all checks succeed, a {@link Subscriber} object for each subscriber method is registered to this bus.</p>
+     * <p>If all checks succeed for every candidate, all of them are subscribed to this bus and a handle for them is
+     * returned. The given class is considered to be the {@link Subscriber#getOrigin() origin} for the new subscribers.
+     * </p>
      *
-     * @param cls       the class, which's statically accessible methods should be subscribed to this bus (the passed
-     *                  object is considered to be the subscribers origin)
-     * @param lookup    the lookup that is used to create subscriber objects
+     * <p>The given {@code Class} object is only weakly referenced from this bus. To prevent premature garbage
+     * collection, a strong reference must be held (for example by holding onto the returned handle).</p>
      *
-     * @throws NullPointerException     if the given class or the given lookup is {@code null}
-     * @throws IllegalArgumentException if a method of the given class is statically accessible and marked as subscriber
-     *                                  but is not visible to the given lookup or expects unsupported parameters
+     * @param cls       the class whose methods should be searched for subscribers
+     * @param lookup    the lookup to be used to access the classes methods
      *
-     * @see #register(Object, MethodHandles.Lookup)
-     * @see #unregister(Object)
+     * @return  a handle for the methods that have been subscribed to this, or {@code null}
      *
-     * @since   1.0.0
+     * @throws IllegalArgumentException if a {@code MethodHandle} could not be created for a subscriber
+     * @throws NullPointerException     if any parameter is {@code null}
+     *
+     * @see #subscribe(Class, EventHandler)
+     * @see #subscribe(Object, MethodHandles.Lookup)
+     *
+     * @since   3.0.0
      */
-    public void register(Class<?> cls, MethodHandles.Lookup lookup) {
+    @Nullable
+    public SubscriberHandle subscribe(Class<?> cls, MethodHandles.Lookup lookup) {
         Objects.requireNonNull(cls);
         Objects.requireNonNull(lookup);
 
-        Map<Class<? extends E>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
-        Method[] methods = cls.getDeclaredMethods();
+        Method[] methods = this.mapper.apply(cls);
 
         //noinspection NullableProblems
-        this.register(methods, eventSubscribers, cls,
-            method -> !method.isSynthetic() && method.isAnnotationPresent(this.subscriberMarker) && Modifier.isStatic(method.getModifiers()),
-            lookup::unreflect
-        );
-
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
+        return this.subscribe(methods, cls, Modifier::isStatic, lookup::unreflect);
     }
 
     /**
-     * Registers all instance methods of the given object's class that are visible to the given lookup and
-     * {@link #getSubscriberMarker() marked} with this bus' marker.
+     * Dynamically discovers potential event-handling non-{@code static} methods in the given class using this bus'
+     * {@link #getSubscriberMarker() subscriber marker}, attempts to subscribe all of them to this bus and returns a
+     * {@link SubscriberHandle handle} for the subscribed methods, or {@code null} if no such methods were found.
      *
-     * <p>Searches the given object's class for any non-synthetic instance method that is marked with this bus'
-     * subscriber marker and performs several vanity checks on each of them and throws an
-     * {@link IllegalArgumentException} if any of them:</p>
+     * <p>This bus's {@link EventBus.Builder#setMethodMapper(Function) method mapper} is used to discover all methods
+     * from the given class. All non-{@code static} non-{@link Method#isBridge() bridge} methods that are annotated with
+     * this bus' {@link #getSubscriberMarker() marker} are considered to be candidates. If no such candidate exists,
+     * {@code null} is returned. Otherwise, multiple checks are performed for each candidate method and an exception is
+     * thrown if any of them:</p>
      * <ul>
-     *     <li>expects any number of parameters other than one, or {@link Event} is not assignable from
-     *     that parameter's type,</li>
-     *     <li>returns any other type than {@code void}, or</li>
-     *     <li>if the method is not visible to the given lookup.</li>
+     * <li>expects any number of parameters other than one, or this bus's {@link #getEventType() base type} is not
+     * {@link Class#isAssignableFrom(Class) assignable from} that parameter's type,</li>
+     * <li>returns any other type than {@code void}, or</li>
+     * <li>if the method is not visible to the given lookup.</li>
      * </ul>
      *
-     * <p>If all checks succeed, a {@link Subscriber} object for each subscriber method is registered to this bus.</p>
+     * <p>If all checks succeed for every candidate, all of them are subscribed to this bus and a handle for them is
+     * returned. The given object is considered to be the {@link Subscriber#getOrigin() origin} for the new subscribers.
+     * </p>
      *
-     * @param object    the object, which's instance accessible methods should be subscribed to this bus (the passed
-     *                  object is considered to be the subscribers origin)
-     * @param lookup    the lookup that is used to create subscriber objects
+     * <p>The given {@code instance} is only weakly referenced from this bus. To prevent premature garbage collection, a
+     * strong reference must be held (for example by holding onto the returned handle).</p>
      *
-     * @throws NullPointerException     if the given object or the given lookup is {@code null}
-     * @throws IllegalArgumentException if a method of the given class is instance accessible and marked as subscriber
-     *                                  but is not visible to the given lookup or expects unsupported parameters
+     * @param instance  the object whose methods should be searched for subscribers
+     * @param lookup    the lookup to be used to access the classes methods
      *
-     * @see #register(Class, MethodHandles.Lookup)
-     * @see #unregister(Object)
+     * @return  a handle for the methods that have been subscribed to this, or {@code null}
      *
-     * @since   1.0.0
+     * @throws IllegalArgumentException if a {@code MethodHandle} could not be created for a subscriber
+     * @throws NullPointerException     if any parameter is {@code null}
+     *
+     * @see #subscribe(Class, EventHandler)
+     * @see #subscribe(Class, MethodHandles.Lookup)
+     *
+     * @since   3.0.0
      */
-    public void register(Object object, MethodHandles.Lookup lookup) {
-        Objects.requireNonNull(object);
+    @Nullable
+    public SubscriberHandle subscribe(Object instance, MethodHandles.Lookup lookup) {
+        Objects.requireNonNull(instance);
         Objects.requireNonNull(lookup);
 
-        Map<Class<? extends E>, Collection<Subscriber>> eventSubscribers = new HashMap<>();
-        Method[] methods = object.getClass().getDeclaredMethods();
+        Class<?> cls = instance.getClass();
+        Method[] methods = this.mapper.apply(cls);
 
-        this.register(methods, eventSubscribers, object,
-            method -> !method.isSynthetic() && method.isAnnotationPresent(this.subscriberMarker) && !Modifier.isStatic(method.getModifiers()),
-            method -> lookup.unreflect(method).bindTo(object)
-        );
-
-        eventSubscribers.forEach((eventType, subscribers) -> this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers));
+        return this.subscribe(methods, instance, mod -> !Modifier.isStatic(mod), method -> lookup.unreflect(method).bindTo(instance));
     }
 
-    @SuppressWarnings("unchecked")
-    private void register(Method[] methods, Map<Class<? extends E>, Collection<Subscriber>> eventSubscribers, Object instance, Predicate<Method> filter, LookupFactory factory) {
+    @Nullable
+    private SubscriberHandle subscribe(
+        Method[] methods,
+        Object instance,
+        IntPredicate modifier,
+        MethodHandleFactory factory
+    ) {
+        Map<Class<? extends E>, Collection<Subscriber<E>>> eventSubscribers = new HashMap<>();
+        List<MethodHandle> methodHandles = new ArrayList<>();
+
         for (Method method : methods) {
-            if (filter.test(method)) {
-                if (method.getReturnType() != void.class)
-                    throw new IllegalArgumentException("Subscriber method must have void return type");
+            if (!method.isAnnotationPresent(this.subscriberMarker) || method.isBridge() || !modifier.test(method.getModifiers())) continue;
 
-                if (method.getParameterCount() != 1 || !this.type.isAssignableFrom(method.getParameterTypes()[0]))
-                    throw new IllegalArgumentException("Subscriber method must only have one parameter of a type that Event can be assigned to");
+            if (method.getReturnType() != void.class)
+                throw new IllegalArgumentException("Subscriber method must have void return type");
 
-                try {
-                    MethodHandle methodHandle = factory.apply(method);
-                    Class<? extends E> eventType = (Class<? extends E>) method.getParameterTypes()[0];
-                    Subscriber subscriber = new Subscriber(this, instance, method, methodHandle);
+            if (method.getParameterCount() != 1 || !this.type.isAssignableFrom(method.getParameterTypes()[0]))
+                throw new IllegalArgumentException("Subscriber method must only have one parameter of a type that Event can be assigned to");
 
-                    eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalArgumentException("Unexpected exception during subscriber creation", e);
-                }
+            MethodHandle hMethod;
+
+            try {
+                hMethod = factory.apply(method);
+            } catch (IllegalAccessException | SecurityException e) {
+                throw new IllegalArgumentException("Failed to create MethodHandle", e);
             }
+
+            @SuppressWarnings("unchecked") Class<? extends E> eventType = (Class<? extends E>) method.getParameterTypes()[0];
+            Subscriber<E> subscriber = new Subscriber.SubscribedMethodHandle<>(this, instance, method, hMethod);
+            eventSubscribers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(subscriber);
+            methodHandles.add(hMethod);
         }
+
+        WeakHashMap<CopyOnWriteArraySet<Subscriber<? extends E>>, WeakHashMap<Subscriber<? extends E>, Void>> typeSubscribersRefs = new WeakHashMap<>();
+        eventSubscribers.forEach((eventType, subscribers) -> {
+            CopyOnWriteArraySet<Subscriber<? extends E>> typeSubscribers = this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>());
+            WeakHashMap<Subscriber<? extends E>, Void> subscribersRefs = new WeakHashMap<>();
+
+            for (Subscriber<? extends E> subscriber : subscribers) {
+                subscribersRefs.put(subscriber, null);
+            }
+
+            this.subscribers.computeIfAbsent(eventType, k -> new CopyOnWriteArraySet<>()).addAll(subscribers);
+            typeSubscribersRefs.put(typeSubscribers, subscribersRefs);
+        });
+
+        Runnable unsubscribe = () -> {
+            for (Map.Entry<CopyOnWriteArraySet<Subscriber<? extends E>>, WeakHashMap<Subscriber<? extends E>, Void>> entry : typeSubscribersRefs.entrySet()) {
+                CopyOnWriteArraySet<Subscriber<? extends E>> typeSubscribers = entry.getKey();
+                typeSubscribers.removeIf(it -> entry.getValue().containsKey(it));
+            }
+
+            this.unsubscribe();
+        };
+
+        return !methodHandles.isEmpty() ? new SubscriberHandle(unsubscribe, methodHandles.toArray(new MethodHandle[0])) : null;
     }
 
     @FunctionalInterface
-    private interface LookupFactory {
-
+    private interface MethodHandleFactory {
         MethodHandle apply(Method method) throws IllegalAccessException;
-
     }
 
-    /**
-     * Unregisters each subscriber, whose origin is equal to the given object, from this bus.
-     *
-     * <p>If this bus is not self-cleaning, this method might not remove all references to unneeded objects which may
-     * result into memory leaks if not handled appropriately. These references may be removed manually by calling
-     * {@link #clear()}.</p>
-     *
-     * @param object    the origin of the subscribers that should be unregistered from this bus
-     *
-     * @throws NullPointerException if the given object is {@code null}
-     *
-     * @since   1.0.0
-     */
-    public void unregister(Object object) {
-        Objects.requireNonNull(object);
-
+    private void unsubscribe() {
         if (this.isSelfCleaning) {
             synchronized (this) {
-                this.subscribers.entrySet().removeIf(entry -> entry.getValue().removeIf(subscriber -> subscriber.origin.equals(object)));
+                this.subscribers.entrySet().removeIf(entry -> entry.getValue().isEmpty());
             }
-        } else {
-            this.subscribers.values().forEach(subscribers -> subscribers.removeIf(subscriber -> subscriber.origin.equals(object)));
         }
     }
 
     /**
-     * Removes all references to empty or unused internal objects that are too expensive to remove otherwise.
-     *
-     * <p>If this bus is self-cleaning, this method does nothing instead.</p>
-     *
-     * @see EventBus.Builder#setSelfCleaning(boolean)
+     * Removes all references to unused objects if this bus is not {@link EventBus.Builder#setSelfCleaning(boolean)
+     * configured to do automatic cleanup}, otherwise this method does nothing.
      *
      * @since   1.0.0
      */
-    public void clear() {
+    public void cleanup() {
         if (!this.isSelfCleaning) {
             synchronized (this) {
                 this.subscribers.entrySet().removeIf(entry -> entry.getValue().isEmpty());
@@ -322,34 +398,33 @@ public final class EventBus<E> {
     }
 
     /**
-     * Unregisters all subscribers of this bus and {@linkplain #clear() clears} the internal state, effectively
-     * resetting the bus to its initial state.
+     * Unsubscribes all subscribers from this bus and resets the internal state.
      *
      * @since   1.0.0
      */
-    public void purge() {
+    public void reset() {
         synchronized (this) {
-            subscribers.clear();
+            this.subscribers.clear();
+            this.receivingTypes.clear();
         }
     }
 
     /**
-     * Posts the given {@linkplain Event} to this bus.
+     * Posts the given {@code event} to this bus.
      *
-     * <p>The event will be {@link EventDispatcher#dispatch(Event, Collection) dispatched} to all subscribers on this
-     * bus whose accepted type {@link Class#isAssignableFrom(Class) is assignable from} the event's type.</p>
+     * <p>The event will be {@link EventDispatcher#dispatch(Object, Set) dispatched} to all subscribers on this bus
+     * whose accepted type {@link Class#isAssignableFrom(Class) is assignable from} the event's type.</p>
      *
-     * <p>If a posted event cannot be received by any subscriber, it is considered "dead". Dead events are wrapped in an
-     * instance of {@link DeadEvent} and passed to the bus' dead-event handler. Listening to these events can be useful
-     * for debugging purposes.</p>
+     * <p>If there are no applicable subscribers for an event, it is considered "dead". Dead events are sometimes an
+     * indication for a misconfiguration and can be caught by setting up a
+     * {@link EventBus.Builder#setDeadEventHandler(Consumer) special handler}.</p>
      *
      * <p>The subscribers are called in no particular order, some time in the future and no guarantees are made that the
      * events are passed to the subscribers in the order in which they are posted to the bus. This behaviour may be
-     * changed at the discretion of this bus' {@link EventDispatcher} and {@link Executor} implementation respectively.
-     * However, it is guaranteed, that an event will only be dispatched to the subscribers that were subscribed to the
-     * event before the event was posted.</p>
+     * changed at the discretion of this bus' {@link EventDispatcher} and {@link Executor} implementation. However, it
+     * is guaranteed, that an event will only be dispatched to the subscribers that were subscribed to this bus before
+     * the event was posted.</p>
      *
-     * @param <T>   the type of the event
      * @param event the event to be dispatched to this bus' subscribers
      *
      * @throws NullPointerException if the given event is {@code null}
@@ -359,42 +434,76 @@ public final class EventBus<E> {
     public <T extends E> void post(T event) {
         Objects.requireNonNull(event);
 
-        List<Subscriber> subscribers = this.subscribers.entrySet().stream()
-            .filter(e -> e.getKey().isAssignableFrom(event.getClass()))
-            .flatMap(entry -> entry.getValue().stream())
-            .collect(Collectors.toList());
+        HashSet<Subscriber<? super T>> subscribers = new HashSet<>();
+        @SuppressWarnings("unchecked") Class<? extends E> eventType = (Class<? extends E>) event.getClass();
+
+        for (Class<? extends E> cls : withSuperTypes(eventType)) {
+            CopyOnWriteArraySet<Subscriber<? extends E>> typeSubscribers = this.subscribers.get(cls);
+            if (typeSubscribers == null) continue;
+
+            List<Subscriber<? extends E>> invalidSubscribers = new ArrayList<>(0);
+
+            for (Subscriber<? extends E> subscriber : typeSubscribers) {
+                if (!subscriber.validate()) {
+                    invalidSubscribers.add(subscriber);
+                    continue;
+                }
+
+                //noinspection unchecked
+                subscribers.add((Subscriber<? super T>) subscriber);
+            }
+
+            typeSubscribers.removeAll(invalidSubscribers);
+        }
 
         if (subscribers.isEmpty()) {
-            if (this.deadEventHandler != null) this.deadEventHandler.accept(new DeadEvent(event));
+            if (this.deadEventHandler != null) this.deadEventHandler.accept(event);
         } else {
-            this.dispatcher.dispatch(event, subscribers);
+            this.dispatcher.dispatch(event, Collections.unmodifiableSet(subscribers));
+            subscribers.forEach(Subscriber::invalidate);
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private Set<Class<? extends E>> withSuperTypes(Class<? extends E> type) {
+        Set<Class<? extends E>> types = this.receivingTypes.get(type);
+        if (types != null) return types;
+
+        types = new HashSet<>();
+        types.add(type);
+
+        Class<?> superType = type.getSuperclass();
+        if (superType != null && this.getEventType().isAssignableFrom(superType)) types.addAll(this.withSuperTypes((Class<? extends E>) superType));
+
+        Class<?>[] superInterfaces = type.getInterfaces();
+        for (Class<?> superInterface : superInterfaces) {
+            if (this.getEventType().isAssignableFrom(superInterface)) types.addAll(this.withSuperTypes((Class<? extends E>) superInterface));
+        }
+
+        this.receivingTypes.put(type, Collections.unmodifiableSet(types));
+        return types;
+    }
+
     /**
-     * A wrapper class for a subscriber method.
+     * A wrapper class for an handler subscribed to a bus.
      *
-     * <p>This class provides several methods that serve as proxies to the underlying subscriber method and may be used
-     * by a {@link EventDispatcher dispatcher} to make decisions about the execution order.</p>
+     * <p>This class provides several methods that serve as proxies to the underlying handler and may be used by a
+     * {@link EventDispatcher dispatcher} to make decisions about the execution order.</p>
      *
      * @since   1.0.0
      */
-    public static final class Subscriber<E> {
+    public static abstract class Subscriber<E> {
 
-        private final EventBus bus;
-        private final Object origin;
-        private final Method method;
-        private final MethodHandle handle;
+        protected final AtomicInteger refCount = new AtomicInteger(0);
 
-        private Subscriber(EventBus bus, Object origin, Method method, MethodHandle handle) {
+        private final EventBus<? super E> bus;
+
+        private Subscriber(EventBus<? super E> bus) {
             this.bus = bus;
-            this.origin = origin;
-            this.method = method;
-            this.handle = handle;
         }
 
         /**
-         * Dispatches the given event to the wrapped subscriber.
+         * Dispatches the given event to the wrapped handler.
          *
          * <p>The blocking behaviour of this method depends on the executor implementation of the {@link EventBus} that
          * the subscriber is registered to.</p>
@@ -405,51 +514,63 @@ public final class EventBus<E> {
          *
          * @since   1.0.0
          */
-        public void dispatch(E event) {
+        public final void dispatch(E event) {
             Objects.requireNonNull(event);
+            this.validate();
 
             this.bus.executor.execute(() -> {
                 try {
-                    this.handle.invoke(event);
+                    this.invoke(event);
                 } catch (Throwable t) {
                     if (this.bus.dispatchErrorHandler != null)
                         this.bus.dispatchErrorHandler.onDispatchError(event, this, t);
+                } finally {
+                    this.invalidate();
                 }
             });
         }
 
-        /**
-         * <b>Serves as a proxy for {@link Method#getAnnotation(Class)}.</b>
-         *
-         * @param <T>               the type of the annotation to query for and return if present
-         * @param annotationClass   the Class object corresponding to the annotation type
-         *
-         * @return this element's annotation for the specified annotation type if present on this element, else null
-         *
-         * @throws NullPointerException if the given annotation class is null
-         *
-         * @since   1.0.0
-         */
-        public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
-            return this.method.getAnnotation(annotationClass);
-        }
+        protected abstract void invoke(E event) throws Throwable;
 
         /**
-         * <b>Serves as a proxy for {@link Method#getAnnotationsByType(Class)}.</b>
+         * If this subscriber was created via {@link EventBus#subscribe(Class, MethodHandles.Lookup) annotation-based
+         * discovery}, this method serves as a proxy for {@link Method#getAnnotation(Class)}. Otherwise, this method
+         * returns {@code null}.
+         *
+         * <p>This method should not be used outside of a {@link EventDispatcher#dispatch(Object, Set)} call.</p>
+         *
+         * @param <T>               the type of the annotation to query for and return if present
+         * @param annotationClass   the {@code Class} object corresponding to the annotation type
+         *
+         * @return  the result of {@link Method#getAnnotation(Class)} if this subscriber represents a method, or
+         *          {@code null} otherwise
+         *
+         * @throws NullPointerException if the given annotation class is {@code null}
+         *
+         * @since   1.0.0
+         */
+        @Nullable
+        public abstract <T extends Annotation> T getAnnotation(Class<T> annotationClass);
+
+        /**
+         * If this subscriber was created via {@link EventBus#subscribe(Class, MethodHandles.Lookup) annotation-based
+         * discovery}, this method serves as a proxy for {@link Method#getAnnotationsByType(Class)}. Otherwise, this
+         * method returns {@code null}.
+         *
+         * <p>This method should not be used outside of a {@link EventDispatcher#dispatch(Object, Set)} call.</p>
          *
          * @param <T>               the type of the annotation to query for and return if present
          * @param annotationClass   the Class object corresponding to the annotation type
          *
-         * @return  all this element's annotations for the specified annotation type if associated with this element,
-         *          else an array of length zero
+         * @return  the result of {@link Method#getAnnotationsByType(Class)} if this subscriber represents a method, or
+         *          {@code null} otherwise
          *
-         * @throws NullPointerException if the given annotation class is null
+         * @throws NullPointerException if the given annotation class is {@code null}
          *
          * @since   1.0.0
          */
-        public <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
-            return this.method.getAnnotationsByType(annotationClass);
-        }
+        @Nullable
+        public abstract <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass);
 
         /**
          * Returns the {@link EventBus} that owns this subscriber.
@@ -458,34 +579,202 @@ public final class EventBus<E> {
          *
          * @since   1.1.0
          */
-        public EventBus getBus() {
+        public final EventBus<? super E> getBus() {
             return this.bus;
         }
 
         /**
          * Returns the origin of this subscriber.
          *
+         * <p>The origin of a subscriber is the given {@code Class} or instance object when using
+         * {@link EventBus#subscribe(Class, MethodHandles.Lookup) annotation-based discovery}, or {@code null} when
+         * {@link EventBus#subscribe(Class, EventHandler) subscribing a handler manually.}</p>
+         *
          * @return  the origin of this subscriber
          *
          * @since   1.1.0
          */
-        public Object getOrigin() {
-            return this.origin;
-        }
+        @Nullable
+        public abstract Object getOrigin();
 
         /**
-         * <b>Serves as a proxy for {@link Method#isAnnotationPresent(Class)}.</b>
+         * If this subscriber was created via {@link EventBus#subscribe(Class, MethodHandles.Lookup) annotation-based
+         * discovery}, this method serves as a proxy for {@link Method#isAnnotationPresent(Class)}. Otherwise, this
+         * method returns {@code false}.
+         *
+         * <p>This method should not be used outside of a {@link EventDispatcher#dispatch(Object, Set)} call.</p>
          *
          * @param annotationClass   the Class object corresponding to the annotation type
          *
-         * @return  true if an annotation for the specified annotation type is present on this element, else false
+         * @return  the result of {@link Method#isAnnotationPresent(Class)} if this subscriber represents a method, or
+         *          {@code false} otherwise
          *
          * @throws NullPointerException if the given annotation class is null
          *
          * @since   1.0.0
          */
-        public boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
-            return this.method.isAnnotationPresent(annotationClass);
+        public abstract boolean isAnnotationPresent(Class<? extends Annotation> annotationClass);
+
+        protected abstract boolean validate();
+        protected abstract void invalidate();
+
+        private static final class SubscribedEventHandler<E> extends Subscriber<E> {
+
+            private final WeakReference<EventHandler<E>> ref;
+
+            @Nullable
+            private EventHandler<E> __handler;
+
+            private SubscribedEventHandler(EventBus<? super E> bus, EventHandler<E> handler) {
+                super(bus);
+                this.ref = new WeakReference<>(handler);
+            }
+
+            @Override
+            @Nullable
+            public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+                return null;
+            }
+
+            @Override
+            @Nullable
+            public <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
+                return null;
+            }
+
+            @Override
+            @Nullable
+            public Object getOrigin() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
+                return false;
+            }
+
+            @Override
+            protected void invoke(E event) throws Throwable {
+                Objects.requireNonNull(this.__handler).handle(event);
+            }
+
+            @Override
+            protected boolean validate() {
+                int res = this.refCount.getAndIncrement();
+                if (res < 0) throw new IllegalStateException();
+
+                if (res == 0) {
+                    this.__handler = this.ref.get();
+                    return (this.__handler != null);
+                }
+
+                return true;
+            }
+
+            @Override
+            protected void invalidate() {
+                int res = this.refCount.decrementAndGet();
+                if (res < 0) throw new IllegalStateException();
+
+                if (res == 0) {
+                    this.__handler = null;
+                }
+            }
+
+        }
+
+        private static final class SubscribedMethodHandle<E> extends Subscriber<E> {
+
+            private final WeakReference<Object> refOrigin;
+            private final WeakReference<Method> refMethod;
+            private final WeakReference<MethodHandle> refMethodHandle;
+
+            @Nullable
+            private MethodHandle __methodHandle;
+
+            private SubscribedMethodHandle(EventBus<E> bus, Object origin, Method method, MethodHandle hMethod) {
+                super(bus);
+                this.refOrigin = new WeakReference<>(origin);
+                this.refMethod = new WeakReference<>(method);
+                this.refMethodHandle = new WeakReference<>(hMethod);
+            }
+
+            @Override
+            public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+                int res = this.refCount.getAndIncrement();
+                if (res == 0) throw new IllegalStateException();
+
+                try {
+                    return Objects.requireNonNull(this.refMethod.get()).getAnnotation(annotationClass);
+                } finally {
+                    this.refCount.decrementAndGet();
+                }
+            }
+
+            @Override
+            public <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
+                int res = this.refCount.getAndIncrement();
+                if (res == 0) throw new IllegalStateException();
+
+                try {
+                    return Objects.requireNonNull(this.refMethod.get()).getAnnotationsByType(annotationClass);
+                } finally {
+                    this.refCount.decrementAndGet();
+                }
+            }
+
+            @Override
+            public Object getOrigin() {
+                int res = this.refCount.getAndIncrement();
+                if (res == 0) throw new IllegalStateException();
+
+                try {
+                    return Objects.requireNonNull(this.refOrigin.get());
+                } finally {
+                    this.refCount.decrementAndGet();
+                }
+            }
+
+            @Override
+            public boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
+                int res = this.refCount.getAndIncrement();
+                if (res == 0) throw new IllegalStateException();
+
+                try {
+                    return Objects.requireNonNull(this.refMethod.get()).isAnnotationPresent(annotationClass);
+                } finally {
+                    this.refCount.decrementAndGet();
+                }
+            }
+
+            @Override
+            protected void invoke(E event) throws Throwable {
+                Objects.requireNonNull(this.__methodHandle).invoke(event);
+            }
+
+            @Override
+            protected boolean validate() {
+                int res = this.refCount.getAndIncrement();
+                if (res == Integer.MAX_VALUE) throw new IllegalStateException();
+
+                if (res == 0) {
+                    this.__methodHandle = this.refMethodHandle.get();
+                    return (this.__methodHandle != null);
+                }
+
+                return true;
+            }
+
+            @Override
+            protected void invalidate() {
+                int res = this.refCount.decrementAndGet();
+                if (res < 0) throw new IllegalStateException();
+
+                if (res == 0) {
+                    this.__methodHandle = null;
+                }
+            }
+
         }
 
     }
@@ -493,7 +782,8 @@ public final class EventBus<E> {
     /**
      * A builder class for an {@link EventBus}.
      *
-     * <p>A builder is reusable. Calling {@linkplain #build()} does not reset nor does it invalidate the builder.</p>
+     * <p>A builder is reusable. Calling {@linkplain #build()} does neither reset nor does it invalidate the builder.
+     * </p>
      *
      * @since   1.0.0
      */
@@ -501,23 +791,25 @@ public final class EventBus<E> {
 
         private final Class<E> type;
 
-        private EventDispatcher dispatcher;
+        private EventDispatcher<E> dispatcher;
         private Executor executor;
         private Class<? extends Annotation> subscriberMarker;
         private boolean isSelfCleaning;
+        private Function<Class<?>, Method[]> mapper;
 
         @Nullable
-        private DispatchErrorHandler dispatchErrorHandler;
+        private DispatchErrorHandler<E> dispatchErrorHandler;
 
         @Nullable
-        private Consumer<DeadEvent> deadEventHandler;
+        private Consumer<E> deadEventHandler;
 
         private Builder(Class<E> type) {
             this.type = type;
             this.dispatcher = EventDispatcher.perThreadDispatchQueue();
             this.executor = DefaultExecutors.directExecutor();
             this.subscriberMarker = EventSubscriber.class;
-            this.isSelfCleaning = false;
+            this.isSelfCleaning = true;
+            this.mapper = Class::getDeclaredMethods;
         }
 
         /**
@@ -528,15 +820,17 @@ public final class EventBus<E> {
          * @since   1.0.0
          */
         public EventBus<E> build() {
-            return new EventBus<>(this.type, this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning, this.deadEventHandler);
+            return new EventBus<>(this.type, this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning, this.mapper, this.deadEventHandler);
         }
 
         /**
-         * Sets the dispatcher implementation that will be used by the bus.
+         * Sets the {@link EventDispatcher dispatcher} implementation that will be used by the bus.
          *
          * <p><b>Consecutive calls overwrite the previously set value.</b></p>
          *
          * @param dispatcher    the dispatcher for the bus
+         *
+         * <p>Defaults to {@link EventDispatcher#perThreadDispatchQueue()}.</p>
          *
          * @return  this builder instance
          *
@@ -544,7 +838,7 @@ public final class EventBus<E> {
          *
          * @since   1.0.0
          */
-        public Builder<E> setDispatcher(EventDispatcher dispatcher) {
+        public Builder<E> setDispatcher(EventDispatcher<E> dispatcher) {
             this.dispatcher = Objects.requireNonNull(dispatcher);
             return this;
         }
@@ -554,13 +848,15 @@ public final class EventBus<E> {
          *
          * <p><b>Consecutive calls overwrite the previously set value.</b></p>
          *
+         * <p>Defaults to {@code null}.</p>
+         *
          * @param handler   the dispatch-error-handler for the bus
          *
          * @return  this builder instance
          *
          * @since   1.1.0
          */
-        public Builder<E> setDispatchErrorHandler(@Nullable DispatchErrorHandler handler) {
+        public Builder<E> setDispatchErrorHandler(@Nullable DispatchErrorHandler<E> handler) {
             this.dispatchErrorHandler = handler;
             return this;
         }
@@ -568,13 +864,17 @@ public final class EventBus<E> {
         /**
          * Sets the dead-event handler that will be used by the bus.
          *
+         * <p><b>Consecutive calls overwrite the previously set value.</b></p>
+         *
+         * <p>Defaults to {@code null}.</p>
+         *
          * @param handler   the dead-event handler for the bus
          *
          * @return  this builder instance
          *
          * @since   2.0.0
          */
-        public Builder<E> setDeadEventHandler(@Nullable Consumer<DeadEvent> handler) {
+        public Builder<E> setDeadEventHandler(@Nullable Consumer<E> handler) {
             this.deadEventHandler = handler;
             return this;
         }
@@ -583,6 +883,8 @@ public final class EventBus<E> {
          * Sets the executor implementation that will be used by the bus.
          *
          * <p><b>Consecutive calls overwrite the previously set value.</b></p>
+         *
+         * <p>Defaults to {@link DefaultExecutors#directExecutor()}.</p>
          *
          * @param executor  the executor for the bus
          *
@@ -598,16 +900,39 @@ public final class EventBus<E> {
         }
 
         /**
+         * Sets the function that the bus should use to extract methods from {@code Class} objects for
+         * {@link #subscribe(Class, MethodHandles.Lookup) annotation-based subscriber discovery}.
+         *
+         * <p><b>Consecutive calls overwrite the previously set value.</b></p>
+         *
+         * <p>Defaults to {@link Class#getDeclaredMethods()}.</p>
+         *
+         * @param mapper    the function to be used
+         *
+         * @return  this builder instance
+         *
+         * @see EventBus#subscribe(Class, MethodHandles.Lookup)
+         * @see EventBus#subscribe(Object, MethodHandles.Lookup)
+         *
+         * @since   3.0.0
+         */
+        public Builder<E> setMethodMapper(Function<Class<?>, Method[]> mapper) {
+            this.mapper = mapper;
+            return this;
+        }
+
+        /**
          * Sets whether or not the bus will be self-cleaning.
          *
          * <p><b>Consecutive calls overwrite the previously set value.</b></p>
+         *
+         * <p>Defaults to {@code true}.</p>
          *
          * @param value whether or not the bus should be self-cleaning
          *
          * @return  this builder instance
          *
-         * @see EventBus#clear()
-         * @see EventBus#unregister(Object)
+         * @see EventBus#cleanup()
          *
          * @since   1.0.0
          */
@@ -617,9 +942,11 @@ public final class EventBus<E> {
         }
 
         /**
-         * Sets the subscriber marker that will be used by the bus.
+         * Sets the {@link EventBus#getSubscriberMarker() subscriber marker} that will be used by the bus.
          *
          * <p><b>Consecutive calls overwrite the previously set value.</b></p>
+         *
+         * <p>Defaults to {@link EventSubscriber}.</p>
          *
          * @param type  the marker type
          *
@@ -628,8 +955,8 @@ public final class EventBus<E> {
          * @throws NullPointerException     if the given type is {@code null}
          * @throws IllegalArgumentException if the given type is not visible at runtime
          *
-         * @see EventBus#register(Class, MethodHandles.Lookup)
-         * @see EventBus#register(Object, MethodHandles.Lookup)
+         * @see EventBus#subscribe(Class, MethodHandles.Lookup)
+         * @see EventBus#subscribe(Object, MethodHandles.Lookup)
          *
          * @since   1.0.0
          */

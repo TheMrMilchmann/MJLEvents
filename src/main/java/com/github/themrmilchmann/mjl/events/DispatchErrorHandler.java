@@ -27,7 +27,7 @@ package com.github.themrmilchmann.mjl.events;
 public interface DispatchErrorHandler<E> {
 
     /**
-     * Handle an error that occurred while dispatching an event to a subscriber.
+     * Handles an error that occurred while dispatching an event to a subscriber.
      *
      * @param event         the event that could not be dispatched
      * @param subscriber    the subscriber that the event could not be dispatched to
@@ -35,6 +35,6 @@ public interface DispatchErrorHandler<E> {
      *
      * @since   1.1.0
      */
-    void onDispatchError(E event, EventBus.Subscriber<E> subscriber, Throwable error);
+    void onDispatchError(E event, EventBus.Subscriber<? extends E> subscriber, Throwable error);
 
 }

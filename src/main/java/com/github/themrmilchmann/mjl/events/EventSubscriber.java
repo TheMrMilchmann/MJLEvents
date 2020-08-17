@@ -21,7 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Default marker for {@link EventBus} subscribers.
+ * Default {@link EventBus#getSubscriberMarker() subscriber marker} for {@code EventBus} instances.
  *
  * @see EventBus.Builder#setSubscriberMarker(Class)
  * @see EventBus#getSubscriberMarker()

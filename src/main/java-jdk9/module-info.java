@@ -13,13 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * A minmal Java library which provides an efficient and modular Event-System (for Java 8 and later).
- *
- * @see com.github.themrmilchmann.mjl.events.EventBus
- *
- * @since   1.0.0
- */
+/** Provides an EventBus for publish-subscribe-style communication between components. */
 module com.github.themrmilchmann.mjl.events {
 
     requires static jsr305;

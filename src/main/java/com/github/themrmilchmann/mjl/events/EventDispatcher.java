@@ -22,7 +22,7 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * An object that takes care of submitting events to subscribers.
+ * A <i>dispatcher</i> is responsible of submitting events to subscribers.
  *
  * @since   1.0.0
  *
@@ -33,15 +33,16 @@ public abstract class EventDispatcher<E> {
     /**
      * Returns a dispatcher that dispatches events directly.
      *
-     * The dispatcher dispatches all events directly upon receiving them without any additional processing or
-     * computation. Thus, events are dispatched in the order in which they are received.
+     * <p>The dispatcher dispatches all events directly upon receiving them without any additional processing or
+     * computation. Thus, events are dispatched in the order in which they are received.</p>
      *
      * @return  a dispatcher that dispatches events directly
      *
      * @since   1.0.0
      */
-    public static EventDispatcher<?> directDispatcher() {
-        return DirectDispatcher.INSTANCE;
+    @SuppressWarnings("unchecked")
+    public static <E> EventDispatcher<E> directDispatcher() {
+        return (DirectDispatcher<E>) DirectDispatcher.INSTANCE;
     }
 
     /**
@@ -68,14 +69,14 @@ public abstract class EventDispatcher<E> {
      *
      * @since   1.0.0
      */
-    protected abstract void dispatch(E event, Set<EventBus.Subscriber<E>> subscribers);
+    protected abstract <T extends E> void dispatch(T event, Set<EventBus.Subscriber<? super T>> subscribers);
 
     private static class DirectDispatcher<E> extends EventDispatcher<E> {
 
         private static final EventDispatcher<?> INSTANCE = new DirectDispatcher<>();
 
         @Override
-        protected void dispatch(E event, Set<EventBus.Subscriber<E>> subscribers) {
+        protected <T extends E> void dispatch(T event, Set<EventBus.Subscriber<? super T>> subscribers) {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
             subscribers.forEach(subscriber -> subscriber.dispatch(event));
@@ -85,26 +86,25 @@ public abstract class EventDispatcher<E> {
 
     private static class PerThreadDispatchQueueDispatcher<E> extends EventDispatcher<E> {
 
-        private final ThreadLocal<Queue<QueuedEvent<E>>> threadLocalQueue = ThreadLocal.withInitial(ArrayDeque::new);
+        private final ThreadLocal<Queue<QueuedEvent<? extends E>>> threadLocalQueue = ThreadLocal.withInitial(ArrayDeque::new);
         private final ThreadLocal<Boolean> isThreadDispatching = ThreadLocal.withInitial(() -> false);
 
         @Override
-        protected void dispatch(E event, Set<EventBus.Subscriber<E>> subscribers) {
+        protected <T extends E> void dispatch(T event, Set<EventBus.Subscriber<? super T>> subscribers) {
             Objects.requireNonNull(event);
             Objects.requireNonNull(subscribers);
 
-            Queue<QueuedEvent<E>> eventQueue = this.threadLocalQueue.get();
+            Queue<QueuedEvent<? extends E>> eventQueue = this.threadLocalQueue.get();
             eventQueue.offer(new QueuedEvent<>(event, subscribers));
 
             if (!this.isThreadDispatching.get()) {
                 this.isThreadDispatching.set(true);
 
                 try {
-                    QueuedEvent<E> queuedEvent;
+                    QueuedEvent<? extends E> queuedEvent;
 
                     while ((queuedEvent = eventQueue.poll()) != null) {
-                        E e = queuedEvent.event;
-                        queuedEvent.subscribers.forEach(subscriber -> subscriber.dispatch(e));
+                        queuedEvent.dispatch();
                     }
                 } finally {
                     this.threadLocalQueue.remove();
@@ -116,11 +116,15 @@ public abstract class EventDispatcher<E> {
         private static class QueuedEvent<E> {
 
             private final E event;
-            private final Collection<EventBus.Subscriber<E>> subscribers;
+            private final Collection<EventBus.Subscriber<? super E>> subscribers;
 
-            private QueuedEvent(E event, Collection<EventBus.Subscriber<E>> subscribers) {
+            private QueuedEvent(E event, Collection<EventBus.Subscriber<? super E>> subscribers) {
                 this.event = event;
                 this.subscribers = subscribers;
+            }
+
+            private void dispatch() {
+                this.subscribers.forEach(subscriber -> subscriber.dispatch(this.event));
             }
 
         }
