@@ -189,6 +189,14 @@ tasks {
         archiveClassifier.set("javadoc")
         from(javadoc.get().outputs)
     }
+
+    test {
+        useJUnitPlatform()
+
+        testLogging {
+            events("passed", "skipped", "failed")
+        }
+    }
 }
 
 publishing {
@@ -254,4 +262,6 @@ repositories {
 
 dependencies {
     compileOnly(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
+
+    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter", version = "5.6.2")
 }
