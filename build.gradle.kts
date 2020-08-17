@@ -254,6 +254,4 @@ repositories {
 
 dependencies {
     compileOnly(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
-
-    testImplementation(group = "org.testng", name = "testng", version = "6.14.3")
 }
