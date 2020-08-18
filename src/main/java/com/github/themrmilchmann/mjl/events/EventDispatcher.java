@@ -36,6 +36,8 @@ public abstract class EventDispatcher<E> {
      * <p>The dispatcher dispatches all events directly upon receiving them without any additional processing or
      * computation. Thus, events are dispatched in the order in which they are received.</p>
      *
+     * @param <E>   the type of the events to dispatch
+     *
      * @return  a dispatcher that dispatches events directly
      *
      * @since   1.0.0
@@ -48,6 +50,8 @@ public abstract class EventDispatcher<E> {
     /**
      * Returns a dispatcher that that guarantees that all events that are posted in a single thread are dispatched to
      * their subscribers in the order they are posted by queuing events that are posted reentrantly on a thread.
+     *
+     * @param <E>   the type of the events to dispatch
      *
      * @return  a dispatcher that guarantees that all events that are posted in a single thread are dispatched to their
      *          subscribers in the order they are posted.
@@ -64,6 +68,7 @@ public abstract class EventDispatcher<E> {
      * <p>Implementations are responsible for
      * {@link com.github.themrmilchmann.mjl.events.EventBus.Subscriber#dispatch(Object) dispatching} events.</p>
      *
+     * @param <T>           the type of the event to dispatch
      * @param event         the event to dispatch
      * @param subscribers   the subscribers to dispatch the event to
      *

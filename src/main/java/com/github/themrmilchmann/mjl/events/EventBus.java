@@ -425,6 +425,7 @@ public final class EventBus<E> {
      * is guaranteed, that an event will only be dispatched to the subscribers that were subscribed to this bus before
      * the event was posted.</p>
      *
+     * @param <T>   the type of the event to post
      * @param event the event to be dispatched to this bus' subscribers
      *
      * @throws NullPointerException if the given event is {@code null}
