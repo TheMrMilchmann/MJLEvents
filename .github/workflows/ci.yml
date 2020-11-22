@@ -17,4 +17,4 @@ jobs:
       - name: Gradle Build
         run: |
           ./gradlew --version --console=plain
-          ./gradlew build -Psnapshot --info -S --console=plain
+          ./gradlew build --info -S --console=plain
