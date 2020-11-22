@@ -82,7 +82,7 @@ tasks {
         if (currentJVMVersion > JavaVersion.VERSION_1_8) {
             options.compilerArgs.addAll(listOf("--release", "8"))
 
-            if  (currentJVMVersion.isJava9) {
+            if (currentJVMVersion.isJava9) {
                 options.isFork = true
                 options.forkOptions.javaHome = jdk8Home
             }
@@ -264,5 +264,5 @@ dependencies {
     compileOnly(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
     testCompileOnly(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
 
-    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter", version = "5.6.2")
+    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter", version = "5.7.0")
 }
