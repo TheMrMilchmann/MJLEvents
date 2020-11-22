@@ -45,7 +45,7 @@ public final class DefaultExecutors {
      * @return  an {@link Executor} that runs each task directly in the thread that invokes
      *          {@link Executor#execute(Runnable)}
      *
-     * @since   1.0.0
+     * @since   3.0.0
      */
     public static Executor directExecutor() {
         return DirectExecutor.INSTANCE;
