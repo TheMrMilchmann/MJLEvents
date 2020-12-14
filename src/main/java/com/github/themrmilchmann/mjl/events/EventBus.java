@@ -436,7 +436,9 @@ public final class EventBus<E> {
         Objects.requireNonNull(event);
 
         HashSet<Subscriber<? super T>> subscribers = new HashSet<>();
-        @SuppressWarnings("unchecked") Class<? extends E> eventType = (Class<? extends E>) event.getClass();
+
+        @SuppressWarnings("unchecked")
+        Class<? extends E> eventType = (Class<? extends E>) event.getClass();
 
         for (Class<? extends E> cls : withSuperTypes(eventType)) {
             CopyOnWriteArraySet<Subscriber<? extends E>> typeSubscribers = this.subscribers.get(cls);
@@ -450,8 +452,9 @@ public final class EventBus<E> {
                     continue;
                 }
 
-                //noinspection unchecked
-                subscribers.add((Subscriber<? super T>) subscriber);
+                @SuppressWarnings("unchecked")
+                Subscriber<? super T> sub = (Subscriber<? super T>) subscriber;
+                subscribers.add(sub);
             }
 
             typeSubscribers.removeAll(invalidSubscribers);
