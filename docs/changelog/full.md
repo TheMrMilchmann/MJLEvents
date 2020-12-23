@@ -88,7 +88,6 @@ _Released 2018 Apr 25_
 
 _Released 2018 Apr 20_
 
-
 #### Improvements
 
 - Added the ability to customize the handling of errors that occur while an event is dispatched to a subscriber via
