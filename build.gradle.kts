@@ -137,7 +137,7 @@ tasks {
             events("passed", "skipped", "failed")
         }
 
-        javaLauncher.set(javaToolchains.launcherFor {
+        javaLauncher.set(project.javaToolchains.launcherFor {
             languageVersion.set(JavaLanguageVersion.of(8))
         })
     }
