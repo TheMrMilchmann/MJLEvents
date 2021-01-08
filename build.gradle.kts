@@ -207,7 +207,7 @@ repositories {
 dependencies {
     /*
      * It would be nice to make jsr305 visible to libraries using the "compileOnlyApi" configuration [1]. However, this
-     * could issues with split packages when building consumers since jsr305 uses javax.* packages.
+     * could cause issues with split packages when building consumers since jsr305 uses javax.* packages.
      *
      * [1] https://github.com/gradle/gradle/issues/14299
      */
