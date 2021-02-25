@@ -51,6 +51,9 @@ public final class DefaultExecutors {
         return DirectExecutor.INSTANCE;
     }
 
+    @Deprecated
+    private DefaultExecutors() { throw new UnsupportedOperationException(); }
+
     private static final class DirectExecutor implements Executor {
 
         private static final Executor INSTANCE = new DirectExecutor();
