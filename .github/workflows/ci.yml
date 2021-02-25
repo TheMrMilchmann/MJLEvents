@@ -3,7 +3,7 @@ on: push
 
 jobs:
   jdk8:
-    name: OpenJDK 15 (Ubuntu)
+    name: OpenJDK 8 (Ubuntu)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
