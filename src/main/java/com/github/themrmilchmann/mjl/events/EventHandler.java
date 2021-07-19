@@ -16,7 +16,8 @@
 package com.github.themrmilchmann.mjl.events;
 
 /**
- * A handler for events that can be manually {@link EventBus#subscribe(Class, EventHandler)} to an {@link EventBus}.
+ * A handler for events that can be manually {@link EventBus#subscribe(Class, EventHandler) subscribed} to an
+ * {@link EventBus}.
  *
  * @param <E>   the type of the handled events
  *
