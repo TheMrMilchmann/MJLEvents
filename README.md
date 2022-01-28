@@ -14,25 +14,23 @@ implementations. It was designed to be fully compatible with Java 9 and the JPMS
 
 ```java
 public class Sample {
-    
-    // Creating a basic EventBus
-    private static final EventBus<Event> bus = EventBus.builder().build();
-    
-    static {
-        // Registering a subscriber
-        bus.register(Sample.class, MethodHandles.lookup());
-        
-        // Posting an event
-        Event event = new SimpleEvent();
+
+    public static void main(String[] args) {
+        // Create a basic EventBus
+        EventBus<Event> bus = EventBus.build();
+
+        // Subscribe a handler
+        SubscriberHandle handle = bus.subscribe(SimpleEvent.class, () -> System.our.println("Received Event"));
+
+        // Post an event
+        Event event = new Event();
         bus.post(event);
+
+        // Unsubscribe a handler
+        handle.unsubscribe();
     }
-    
-    @EventSubscriber
-    public static void handleEvent(Event event) {
-        // Handle the event
-    } 
-    
-    public static class SimpleEvent implements Event {}
+
+    public static class Event {}
 
 }
 ```
