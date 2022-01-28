@@ -35,7 +35,7 @@ version = when (deployment.type) {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(15))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
@@ -58,7 +58,10 @@ tasks {
      * (Additional Java 9 specific functionality may also be used and is handled by this task.)
      */
     val compileJava9 = create<JavaCompile>("compileJava9") {
-        destinationDir = File(buildDir, "classes/java-jdk9/main")
+        destinationDirectory.set(File(buildDir, "classes/java-jdk9/main"))
+
+        // Remove when https://github.com/gradle/gradle/issues/18262 is fixed
+        modularity.inferModulePath.set(false)
 
         val java9Source = fileTree("src/main/java-jdk9") {
             include("**/*.java")
@@ -74,6 +77,8 @@ tasks {
         afterEvaluate {
             options.compilerArgs.add("--module-path")
             options.compilerArgs.add(compileJava.get().classpath.asPath)
+            options.compilerArgs.add("--module-version")
+            options.compilerArgs.add("$version")
         }
     }
 
@@ -134,14 +139,6 @@ tasks {
 
     test {
         useJUnitPlatform()
-
-        testLogging {
-            events("passed", "skipped", "failed")
-        }
-
-        javaLauncher.set(project.javaToolchains.launcherFor {
-            languageVersion.set(JavaLanguageVersion.of(8))
-        })
     }
 }
 
@@ -166,7 +163,7 @@ publishing {
 
             pom {
                 name.set(project.name)
-                description.set("A minimal Java library which provides an efficient and modular Event-System.")
+                description.set("A minimal Java library which provides an efficient and modular in-process event-system.")
                 packaging = "jar"
                 url.set("https://github.com/TheMrMilchmann/MJLEvents")
 
@@ -207,14 +204,7 @@ repositories {
 }
 
 dependencies {
-    /*
-     * It would be nice to make jsr305 visible to libraries using the "compileOnlyApi" configuration [1]. However, this
-     * could cause issues with split packages when building consumers since jsr305 uses javax.* packages.
-     *
-     * [1] https://github.com/gradle/gradle/issues/14299
-     */
-    compileOnly(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
-    testCompileOnly(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
+    compileOnlyApi(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
 
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter", version = "5.7.1")
 }
