@@ -22,7 +22,7 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * A <i>dispatcher</i> is responsible of submitting events to subscribers.
+ * A <i>dispatcher</i> is responsible for submitting events to subscribers.
  *
  * @since   1.0.0
  *

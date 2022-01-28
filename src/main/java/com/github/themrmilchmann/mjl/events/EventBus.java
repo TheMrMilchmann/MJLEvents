@@ -489,7 +489,7 @@ public final class EventBus<E> {
     }
 
     /**
-     * A wrapper class for an handler subscribed to a bus.
+     * A wrapper class for a handler subscribed to a bus.
      *
      * <p>This class provides several methods that serve as proxies to the underlying handler and may be used by a
      * {@link EventDispatcher dispatcher} to make decisions about the execution order.</p>
@@ -824,7 +824,16 @@ public final class EventBus<E> {
          * @since   1.0.0
          */
         public EventBus<E> build() {
-            return new EventBus<>(this.type, this.dispatcher, this.dispatchErrorHandler, this.executor, this.subscriberMarker, this.isSelfCleaning, this.mapper, this.deadEventHandler);
+            return new EventBus<>(
+                this.type,
+                this.dispatcher,
+                this.dispatchErrorHandler,
+                this.executor,
+                this.subscriberMarker,
+                this.isSelfCleaning,
+                this.mapper,
+                this.deadEventHandler
+            );
         }
 
         /**
@@ -926,13 +935,13 @@ public final class EventBus<E> {
         }
 
         /**
-         * Sets whether or not the bus will be self-cleaning.
+         * Sets whether the bus will be self-cleaning.
          *
          * <p><b>Consecutive calls overwrite the previously set value.</b></p>
          *
          * <p>Defaults to {@code true}.</p>
          *
-         * @param value whether or not the bus should be self-cleaning
+         * @param value whether the bus should be self-cleaning
          *
          * @return  this builder instance
          *
