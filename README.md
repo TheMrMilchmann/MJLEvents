@@ -4,10 +4,12 @@
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=Maven%20Central)](https://maven-badges.herokuapp.com/maven-central/com.github.themrmilchmann.mjl/mjl-events)
 [![JavaDoc](https://img.shields.io/maven-central/v/com.github.themrmilchmann.mjl/mjl-events.svg?style=flat-square&label=JavaDoc&color=blue)](https://javadoc.io/doc/com.github.themrmilchmann.mjl/mjl-events)
 
-A **m**inmal **J**ava **l**ibrary which provides an efficient and modular Event-System (for Java 8 and later).
+A **m**inmal **J**ava **l**ibrary which provides an efficient and modular
+in-process Event-System (for Java 8 and later).
 
-The API of this library has been heavily influenced by [guava](https://github.com/google/guava) and other
-implementations. It was designed to be fully compatible with Java 9 and the JPMS.
+The API of this library has been heavily influenced by [guava](https://github.com/google/guava)
+and other implementations. It was designed to be fully compatible with Java 9
+and the module-system.
 
 
 ## Getting Started
