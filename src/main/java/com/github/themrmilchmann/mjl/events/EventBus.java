@@ -221,13 +221,13 @@ public final class EventBus<E> {
      * {@link #getSubscriberMarker() subscriber marker}, attempts to subscribe all of them to this bus and returns a
      * {@link SubscriberHandle handle} for the subscribed methods, or {@code null} if no such methods were found.
      *
-     * <p>This bus's {@link EventBus.Builder#setMethodMapper(Function) method mapper} is used to discover all methods
+     * <p>This bus' {@link EventBus.Builder#setMethodMapper(Function) method mapper} is used to discover all methods
      * from the given class. All {@code static} non-{@link Method#isBridge() bridge} methods that are annotated with
      * this bus' {@link #getSubscriberMarker() marker} are considered to be candidates. If no such candidate exists,
      * {@code null} is returned. Otherwise, multiple checks are performed for each candidate method and an exception is
      * thrown if any of them:</p>
      * <ul>
-     * <li>expects any number of parameters other than one, or this bus's {@link #getEventType() base type} is not
+     * <li>expects any number of parameters other than one, or this bus' {@link #getEventType() base type} is not
      * {@link Class#isAssignableFrom(Class) assignable from} that parameter's type,</li>
      * <li>returns any other type than {@code void}, or</li>
      * <li>if the method is not visible to the given lookup.</li>
@@ -269,13 +269,13 @@ public final class EventBus<E> {
      * {@link #getSubscriberMarker() subscriber marker}, attempts to subscribe all of them to this bus and returns a
      * {@link SubscriberHandle handle} for the subscribed methods, or {@code null} if no such methods were found.
      *
-     * <p>This bus's {@link EventBus.Builder#setMethodMapper(Function) method mapper} is used to discover all methods
+     * <p>This bus' {@link EventBus.Builder#setMethodMapper(Function) method mapper} is used to discover all methods
      * from the given class. All non-{@code static} non-{@link Method#isBridge() bridge} methods that are annotated with
      * this bus' {@link #getSubscriberMarker() marker} are considered to be candidates. If no such candidate exists,
      * {@code null} is returned. Otherwise, multiple checks are performed for each candidate method and an exception is
      * thrown if any of them:</p>
      * <ul>
-     * <li>expects any number of parameters other than one, or this bus's {@link #getEventType() base type} is not
+     * <li>expects any number of parameters other than one, or this bus' {@link #getEventType() base type} is not
      * {@link Class#isAssignableFrom(Class) assignable from} that parameter's type,</li>
      * <li>returns any other type than {@code void}, or</li>
      * <li>if the method is not visible to the given lookup.</li>
