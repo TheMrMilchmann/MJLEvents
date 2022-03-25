@@ -102,8 +102,8 @@ public final class EventBus<E> {
     /*
      * A couple of notes about GC eligibility of the related objects here:
      *
-     * As long as a SubscriberHandle is strongly referenced somewhere (and SubscriberHandle#unsubscribe) has not been
-     * called, the EventHandler (or Context for MethodHandles) is still strongly referenced. These, in turn, implicitly
+     * As long as a SubscriberHandle is strongly referenced somewhere (and SubscriberHandle#unsubscribe has not been
+     * called), the EventHandler (or Context for MethodHandles) is still strongly referenced. These, in turn, implicitly
      * reference the "eventType" class (the one which serves as key to the subscribers map) via their signature.
      * Therefore, keys and (thus) values of the "subscribers" map are not eligible for GC.
      *
@@ -127,24 +127,15 @@ public final class EventBus<E> {
     @Nullable
     private final Consumer<E> deadEventHandler;
 
-    private EventBus(
-        Class<E> type,
-        EventDispatcher<E> dispatcher,
-        @Nullable DispatchErrorHandler<E> dispatchErrorHandler,
-        Executor executor,
-        Class<? extends Annotation> subscriberMarker,
-        boolean isSelfCleaning,
-        Function<Class<?>, Method[]> mapper,
-        @Nullable Consumer<E> deadEventHandler
-    ) {
-        this.type = type;
-        this.dispatcher = dispatcher;
-        this.dispatchErrorHandler = dispatchErrorHandler;
-        this.executor = executor;
-        this.subscriberMarker = subscriberMarker;
-        this.isSelfCleaning = isSelfCleaning;
-        this.mapper = mapper;
-        this.deadEventHandler = deadEventHandler;
+    private EventBus(Builder<E> builder) {
+        this.type = builder.type;
+        this.dispatcher = builder.dispatcher;
+        this.dispatchErrorHandler = builder.dispatchErrorHandler;
+        this.executor = builder.executor;
+        this.subscriberMarker = builder.subscriberMarker;
+        this.isSelfCleaning = builder.isSelfCleaning;
+        this.mapper = builder.mapper;
+        this.deadEventHandler = builder.deadEventHandler;
     }
 
     /**
@@ -824,16 +815,7 @@ public final class EventBus<E> {
          * @since   1.0.0
          */
         public EventBus<E> build() {
-            return new EventBus<>(
-                this.type,
-                this.dispatcher,
-                this.dispatchErrorHandler,
-                this.executor,
-                this.subscriberMarker,
-                this.isSelfCleaning,
-                this.mapper,
-                this.deadEventHandler
-            );
+            return new EventBus<>(this);
         }
 
         /**
