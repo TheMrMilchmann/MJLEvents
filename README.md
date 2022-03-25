@@ -70,7 +70,7 @@ Additionally `tasks` may be used to print a list of all available tasks.
 
 ## License
 
-Copyright 2018-2021 Leon Linhart
+Copyright 2018-2022 Leon Linhart
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
