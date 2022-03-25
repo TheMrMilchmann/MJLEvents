@@ -199,7 +199,8 @@ repositories {
 }
 
 dependencies {
-    compileOnlyApi(group = "com.google.code.findbugs", name = "jsr305", version = "3.0.2")
+    compileOnlyApi(libs.jsr305)
 
-    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter", version = "5.7.1")
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
 }
