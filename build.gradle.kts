@@ -22,6 +22,7 @@ plugins {
     `java-library`
     signing
     `maven-publish`
+    alias(libs.plugins.extra.java.module.info)
 }
 
 val artifactName = "mjl-events"
@@ -196,6 +197,10 @@ signing {
 
 repositories {
     mavenCentral()
+}
+
+extraJavaModuleInfo {
+    automaticModule("jsr305-3.0.2.jar", "jsr305")
 }
 
 dependencies {
