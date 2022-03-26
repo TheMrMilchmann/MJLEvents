@@ -16,40 +16,43 @@
 package com.github.themrmilchmann.mjl.events.test;
 
 import com.github.themrmilchmann.mjl.events.EventBus;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("ConstantConditions")
-@Test
 public final class BuilderTests {
 
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test
     public void testParams$setDispatcher$Nullability() {
-        EventBus.builder().setDispatcher(null);
+        assertThrows(NullPointerException.class, () -> EventBus.builder().setDispatcher(null));
     }
 
+    @Test
     public void testParams$setDispatchErrorHandler() {
         EventBus.builder().setDispatchErrorHandler(null);
     }
 
+    @Test
     public void testParams$setDeadEventHandler() {
         EventBus.builder().setDeadEventHandler(null);
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test
     public void testParams$setExecutor$Nullability() {
-        EventBus.builder().setExecutor(null);
+        assertThrows(NullPointerException.class, () -> EventBus.builder().setExecutor(null));
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test
     public void testParams$setSubscriberMarker$Nullability() {
-        EventBus.builder().setSubscriberMarker(null);
+        assertThrows(NullPointerException.class, () -> EventBus.builder().setSubscriberMarker(null));
     }
 
     private @interface IllegalSubscriberMarker {}
 
-    @Test(expectedExceptions = IllegalArgumentException.class)
+    @Test
     public void testParams$setSubscriberMarker$Checks() {
-        EventBus.builder().setSubscriberMarker(IllegalSubscriberMarker.class);
+        assertThrows(IllegalArgumentException.class, () -> EventBus.builder().setSubscriberMarker(IllegalSubscriberMarker.class));
     }
 
 }

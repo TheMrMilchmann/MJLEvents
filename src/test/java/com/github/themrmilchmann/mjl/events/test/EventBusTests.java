@@ -15,39 +15,36 @@
  */
 package com.github.themrmilchmann.mjl.events.test;
 
-import com.github.themrmilchmann.mjl.events.EventBus;
-import org.testng.annotations.Test;
-
 import java.lang.invoke.MethodHandles;
+import com.github.themrmilchmann.mjl.events.EventBus;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("ConstantConditions")
-@Test
 public final class EventBusTests {
 
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test
     public void testParams$subscribeCls$Nullability() {
         EventBus<?> bus = EventBus.builder().build();
-        bus.register(null, MethodHandles.lookup());
-        bus.register(EventBusTests.class, null);
+
+        //noinspection RedundantCast
+        assertThrows(NullPointerException.class, () -> bus.subscribe((Class<?>) null, MethodHandles.lookup()));
+        assertThrows(NullPointerException.class, () -> bus.subscribe(EventBusTests.class, null));
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test
     public void testParams$subscribeObj$Nullability() {
         EventBus<?> bus = EventBus.builder().build();
-        bus.register(null, MethodHandles.lookup());
-        bus.register(this, null);
+
+        assertThrows(NullPointerException.class, () -> bus.subscribe((Object) null, MethodHandles.lookup()));
+        assertThrows(NullPointerException.class, () -> bus.subscribe(this, null));
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
-    public void testParams$unsubscribe$Nullability() {
-        EventBus<?> bus = EventBus.builder().build();
-        bus.unregister(null);
-    }
-
-    @Test(expectedExceptions = NullPointerException.class)
+    @Test
     public void testParams$post$Nullability() {
         EventBus<?> bus = EventBus.builder().build();
-        bus.post(null);
+        assertThrows(NullPointerException.class, () -> bus.post(null));
     }
 
 }

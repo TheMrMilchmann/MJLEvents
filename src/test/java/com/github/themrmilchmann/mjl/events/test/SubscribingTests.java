@@ -17,7 +17,7 @@ package com.github.themrmilchmann.mjl.events.test;
 
 import com.github.themrmilchmann.mjl.events.EventBus;
 import com.github.themrmilchmann.mjl.events.EventSubscriber;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,19 +25,18 @@ import java.lang.invoke.MethodHandles;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-@Test
+import static org.junit.jupiter.api.Assertions.*;
+
 public final class SubscribingTests {
 
     @Retention(RetentionPolicy.RUNTIME)
     @interface PublicSubscriber {}
 
-    @Test(enabled = false)
     @PublicSubscriber
     public void instanceSubscriber(TestEvent.TestCompletableFutureEvent event) {
         event.getFuture().complete(null);
     }
 
-    @Test(enabled = false)
     @PublicSubscriber
     public static void staticSubscriber(TestEvent.TestCompletableFutureEvent event) {
         event.getFuture().complete(null);
@@ -48,7 +47,7 @@ public final class SubscribingTests {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PublicSubscriber.class)
             .build();
-        bus.register(this, MethodHandles.lookup());
+        bus.subscribe(this, MethodHandles.lookup());
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
@@ -60,7 +59,7 @@ public final class SubscribingTests {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PublicSubscriber.class)
             .build();
-        bus.register(SubscribingTests.class, MethodHandles.lookup());
+        bus.subscribe(SubscribingTests.class, MethodHandles.lookup());
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
@@ -73,7 +72,7 @@ public final class SubscribingTests {
             .setSubscriberMarker(PublicSubscriber.class)
             .build();
 
-        bus.register(new Object() {
+        bus.subscribe(new Object() {
 
             @SuppressWarnings("unused")
             @PublicSubscriber
@@ -91,13 +90,12 @@ public final class SubscribingTests {
     @Retention(RetentionPolicy.RUNTIME)
     @interface ProtectedSubscriber {}
 
-    @Test(enabled = false)
     @ProtectedSubscriber
     public void proInstanceSubscriber(TestEvent.TestCompletableFutureEvent event) {
         event.getFuture().complete(null);
     }
 
-    @Test(enabled = false)
+    @SuppressWarnings({"ProtectedMemberInFinalClass", "unused"})
     @ProtectedSubscriber
     protected static void proStaticSubscriber(TestEvent.TestCompletableFutureEvent event) {
         event.getFuture().complete(null);
@@ -108,7 +106,7 @@ public final class SubscribingTests {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(ProtectedSubscriber.class)
             .build();
-        bus.register(this, MethodHandles.lookup());
+        bus.subscribe(this, MethodHandles.lookup());
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
@@ -120,7 +118,7 @@ public final class SubscribingTests {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(ProtectedSubscriber.class)
             .build();
-        bus.register(SubscribingTests.class, MethodHandles.lookup());
+        bus.subscribe(SubscribingTests.class, MethodHandles.lookup());
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
@@ -133,7 +131,8 @@ public final class SubscribingTests {
             .setSubscriberMarker(ProtectedSubscriber.class)
             .build();
 
-        bus.register(new Object() {
+        //noinspection ProtectedMemberInFinalClass
+        bus.subscribe(new Object() {
 
             @SuppressWarnings("unused")
             @ProtectedSubscriber
@@ -152,14 +151,12 @@ public final class SubscribingTests {
     @interface PrivateSubscriber {}
 
     @SuppressWarnings("unused")
-    @Test(enabled = false)
     @PrivateSubscriber
     private void prvInstanceSubscriber(TestEvent.TestCompletableFutureEvent event) {
         event.getFuture().complete(null);
     }
 
     @SuppressWarnings("unused")
-    @Test(enabled = false)
     @PrivateSubscriber
     private static void prvStaticSubscriber(TestEvent.TestCompletableFutureEvent event) {
         event.getFuture().complete(null);
@@ -170,7 +167,7 @@ public final class SubscribingTests {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PrivateSubscriber.class)
             .build();
-        bus.register(this, MethodHandles.lookup());
+        bus.subscribe(this, MethodHandles.lookup());
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
@@ -182,20 +179,20 @@ public final class SubscribingTests {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PrivateSubscriber.class)
             .build();
-        bus.register(SubscribingTests.class, MethodHandles.lookup());
+        bus.subscribe(SubscribingTests.class, MethodHandles.lookup());
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class)
+    @Test
     public void testPrivateAnonymousSubscriber() {
         EventBus<Object> bus = EventBus.builder()
             .setSubscriberMarker(PrivateSubscriber.class)
             .build();
 
-        bus.register(new Object() {
+        assertThrows(IllegalArgumentException.class, () -> bus.subscribe(new Object() {
 
             @SuppressWarnings("unused")
             @PrivateSubscriber
@@ -203,18 +200,14 @@ public final class SubscribingTests {
                 event.getFuture().complete(null);
             }
 
-        }, MethodHandles.lookup());
-
-        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
-        bus.post(new TestEvent.TestCompletableFutureEvent(future));
-        future.join();
+        }, MethodHandles.lookup()));
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class)
+    @Test
     public void testIllegalParameterCountSubscriber() {
         EventBus<Object> bus = EventBus.builder().build();
 
-        bus.register(new Object() {
+        assertThrows(IllegalArgumentException.class, () -> bus.subscribe(new Object() {
 
             @SuppressWarnings("unused")
             @EventSubscriber
@@ -222,30 +215,7 @@ public final class SubscribingTests {
                 event.getFuture().complete(null);
             }
 
-        }, MethodHandles.lookup());
-
-        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
-        bus.post(new TestEvent.TestCompletableFutureEvent(future));
-        future.join();
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class)
-    public void testIllegalParameterTypeSubscriber() {
-        EventBus<Object> bus = EventBus.builder().build();
-
-        bus.register(new Object() {
-
-            @SuppressWarnings("unused")
-            @EventSubscriber
-            public void anonymousSubscriber(Object event) {
-                ((TestEvent.TestCompletableFutureEvent) event).getFuture().complete(null);
-            }
-
-        }, MethodHandles.lookup());
-
-        CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
-        bus.post(new TestEvent.TestCompletableFutureEvent(future));
-        future.join();
+        }, MethodHandles.lookup()));
     }
 
 }

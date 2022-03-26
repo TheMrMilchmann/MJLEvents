@@ -15,43 +15,54 @@
  */
 package com.github.themrmilchmann.mjl.events.test;
 
-import com.github.themrmilchmann.mjl.events.*;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.testng.Assert.*;
+import com.github.themrmilchmann.mjl.events.*;
+import org.junit.jupiter.api.Test;
 
-@Test
+import static org.junit.jupiter.api.Assertions.*;
+
 public final class PostingTests {
 
+    @Test
     public void testSingleSubscriberPost() {
         EventBus<Object> bus = EventBus.builder()
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(DefaultExecutors.directExecutor())
             .build();
-        bus.register(this, MethodHandles.lookup());
+
+        SubscriberHandle handle = bus.subscribe(TestEvent.TestCompletableFutureEvent.class, event -> event.getFuture().complete(null));
+        assertNotNull(handle);
 
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
         bus.post(new TestEvent.TestCompletableFutureEvent(future));
         future.join();
+
+        handle.unsubscribe();
     }
 
+    @Test
     public void testAssignableResolutionPost() throws InterruptedException {
         EventBus<Object> bus = EventBus.builder()
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(DefaultExecutors.directExecutor())
             .build();
-        bus.register(this, MethodHandles.lookup());
+
+        SubscriberHandle handle = bus.subscribe(TestEvent.TestCountdownLatchEvent.class, event -> event.getLatch().countDown());
+        assertNotNull(handle);
 
         CountDownLatch latch = new CountDownLatch(2);
+        bus.post(new TestEvent());
         bus.post(new TestEvent.TestCountdownLatchEvent(latch));
+        bus.post(new TestEvent.TestCountdownLatchEvent2(latch));
         assertTrue(latch.await(1, TimeUnit.SECONDS));
+
+        handle.unsubscribe();
     }
 
+    @Test
     public void testDeadPost() {
         CompletableFuture<?> future = Util.timeoutAfter(1, TimeUnit.SECONDS);
 
@@ -60,30 +71,9 @@ public final class PostingTests {
             .setDispatcher(EventDispatcher.directDispatcher())
             .setExecutor(DefaultExecutors.directExecutor())
             .build();
-        bus.register(this, MethodHandles.lookup());
 
         bus.post(new TestDeadEvent(future));
         future.join();
-    }
-
-    @Test(enabled = false)
-    @EventSubscriber
-    public void instanceSubscriber(TestEvent event) {
-        if (event instanceof TestEvent.TestCountdownLatchEvent) {
-            ((TestEvent.TestCountdownLatchEvent) event).getLatch().countDown();
-        }
-    }
-
-    @SuppressWarnings("unused")
-    @EventSubscriber
-    private void instanceCFSubscriber(TestEvent.TestCompletableFutureEvent event) {
-        event.getFuture().complete(null);
-    }
-
-    @SuppressWarnings("unused")
-    @EventSubscriber
-    private void instanceCLSubscriber(TestEvent.TestCountdownLatchEvent event) {
-        event.getLatch().countDown();
     }
 
 }

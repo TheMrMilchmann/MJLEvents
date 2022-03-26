@@ -48,4 +48,12 @@ class TestEvent {
 
     }
 
+    static class TestCountdownLatchEvent2 extends TestCountdownLatchEvent {
+
+        TestCountdownLatchEvent2(CountDownLatch latch) {
+            super(latch);
+        }
+
+    }
+
 }
