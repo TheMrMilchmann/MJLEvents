@@ -9,8 +9,8 @@ A **m**inmal **J**ava **l**ibrary which provides an efficient and modular
 in-process event-system (for Java 8 and later).
 
 The API of this library has been heavily influenced by [guava](https://github.com/google/guava)
-and other implementations. It was designed to be fully compatible with Java 9
-and the module-system.
+and other implementations. It was designed to be fully compatible with Java
+modules.
 
 
 ## Getting Started
