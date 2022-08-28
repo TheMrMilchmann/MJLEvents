@@ -185,7 +185,7 @@ repositories {
 }
 
 extraJavaModuleInfo {
-    automaticModule("jsr305-3.0.2.jar", "jsr305")
+    automaticModule(libs.jsr305.orNull!!.module.toString(), "jsr305")
 }
 
 dependencies {
