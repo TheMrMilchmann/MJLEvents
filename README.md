@@ -43,7 +43,7 @@ public class Sample {
 
 ### Setup
 
-This project uses [Gradle's toolchain support](https://docs.gradle.org/7.4.1/userguide/toolchains.html)
+This project uses [Gradle's toolchain support](https://docs.gradle.org/7.5.1/userguide/toolchains.html)
 to detect and select the JDKs required to run the build. Please refer to the
 build scripts to find out which toolchains are requested.
 
