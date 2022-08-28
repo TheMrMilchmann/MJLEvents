@@ -1,6 +1,6 @@
 [versions]
 extra-java-module-info = "1.0"
-junit = "5.8.2"
+junit = "5.9.0"
 jsr305 = "3.0.2"
 
 
