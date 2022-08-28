@@ -38,6 +38,9 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(18))
     }
+
+    withJavadocJar()
+    withSourcesJar()
 }
 
 tasks {
@@ -98,11 +101,7 @@ tasks {
         }
     }
 
-    create<Jar>("sourcesJar") {
-        archiveBaseName.set(artifactName)
-        archiveClassifier.set("sources")
-        from(sourceSets["main"].allSource)
-
+    getByName<Jar>("sourcesJar") {
         into("META-INF/versions/9") {
             from(compileJava9.inputs.files.filter(File::isDirectory))
             includeEmptyDirs = false
@@ -119,14 +118,6 @@ tasks {
 
             addStringOption("-release", "8")
         }
-    }
-
-    create<Jar>("javadocJar") {
-        dependsOn(javadoc)
-
-        archiveBaseName.set(artifactName)
-        archiveClassifier.set("javadoc")
-        from(javadoc.get().outputs)
     }
 
     test {
@@ -148,8 +139,6 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
-            artifact(tasks["sourcesJar"])
-            artifact(tasks["javadocJar"])
 
             artifactId = artifactName
 
