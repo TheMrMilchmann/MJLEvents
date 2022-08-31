@@ -62,6 +62,8 @@ public abstract class EventDispatcher<E> {
         return new PerThreadDispatchQueueDispatcher<>();
     }
 
+    protected EventDispatcher() {}
+
     /**
      * Dispatches the event to the subscribers.
      *
