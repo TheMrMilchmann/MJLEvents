@@ -1,5 +1,6 @@
 [versions]
 extra-java-module-info = "1.0"
+gradle-toolchain-switches = "0.1.0"
 junit = "5.9.0"
 jsr305 = "3.0.2"
 
@@ -15,5 +16,8 @@ junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", vers
 
 
 [plugins]
+# io.github.themrmilchmann.gradle.toolchainswitches:gradle-toolchain-switches - Gradle Toolchain Switches Plugin
+gradle-toolchain-switches = { id = "io.github.themrmilchmann.toolchain-switches", version.ref = "gradle-toolchain-switches" }
+
 # org.gradlex:extra-java-module-info - extra-java-module-info
 extra-java-module-info = { id = "org.gradlex.extra-java-module-info", version.ref = "extra-java-module-info" }

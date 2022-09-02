@@ -23,6 +23,7 @@ plugins {
     signing
     `maven-publish`
     alias(libs.plugins.extra.java.module.info)
+    alias(libs.plugins.gradle.toolchain.switches)
 }
 
 val artifactName = "mjl-events"
