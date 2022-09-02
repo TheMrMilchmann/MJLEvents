@@ -4,6 +4,7 @@ on: push
 
 env:
   JDK_VERSION: '18'
+  workspace_archive: workspace.tar
   workspace_artifact: build-results
 
 
@@ -27,10 +28,13 @@ jobs:
           arguments: assemble -Psnapshot --info -S --show-version
           gradle-home-cache-cleanup: true
 
+      - name: Tar files
+        run: tar -cvf ${{ env.workspace_archive }} .
+
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.workspace_artifact }}
-          path: .
+          path: ${{ env.workspace_archive }}
           retention-days: 1
 
 
@@ -47,6 +51,11 @@ jobs:
         with:
           name: ${{ env.workspace_artifact }}
           path: .
+
+      - name: Untar
+        run: |
+          tar -xvf ${{ env.workspace_archive }}
+          rm ${{ env.workspace_archive }}
 
       - uses: AdoptOpenJDK/install-jdk@v1
         with:
