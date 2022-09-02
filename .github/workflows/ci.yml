@@ -64,7 +64,7 @@ jobs:
       - name: Gradle Assemble
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: check -Psnapshot --info -S --show-version -Ptoolchain.test.version=env
+          arguments: check -Psnapshot --info -S --show-version -Ptoolchain.test.version=${{ matrix.jdk }}
           gradle-home-cache-cleanup: true
 
 
