@@ -4,8 +4,8 @@ on: push
 
 env:
   JDK_VERSION: '18'
-  workspace_archive: workspace.tar
-  workspace_artifact: build-results
+  WORKSPACE_ARCHIVE: workspace.tar
+  WORKSPACE_ARTIFACT: build-results
 
 
 jobs:
@@ -29,12 +29,12 @@ jobs:
           gradle-home-cache-cleanup: true
 
       - name: Tar files
-        run: tar -cvf ${{ env.workspace_archive }} .
+        run: tar -cvf ${{ env.WORKSPACE_ARCHIVE }} .
 
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.workspace_artifact }}
-          path: ${{ env.workspace_archive }}
+          name: ${{ env.WORKSPACE_ARTIFACT }}
+          path: ${{ env.WORKSPACE_ARCHIVE }}
           retention-days: 1
 
 
@@ -49,13 +49,13 @@ jobs:
       - name: Checkout
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.workspace_artifact }}
+          name: ${{ env.WORKSPACE_ARTIFACT }}
           path: .
 
       - name: Untar
         run: |
-          tar -xvf ${{ env.workspace_archive }}
-          rm ${{ env.workspace_archive }}
+          tar -xvf ${{ env.WORKSPACE_ARCHIVE }}
+          rm ${{ env.WORKSPACE_ARCHIVE }}
 
       - uses: AdoptOpenJDK/install-jdk@v1
         with:
@@ -89,4 +89,4 @@ jobs:
       - name: Cleanup
         uses: GeekyEggo/delete-artifact@56e063d7d8bf9972ac54aca4454d3a6675917f44
         with:
-          name: ${{ env.workspace_artifact }}
+          name: ${{ env.WORKSPACE_ARTIFACT }}
